@@ -34,6 +34,9 @@ talking_tom_adult_sparkle.usdz
 old-talking-tom-model-2010.stl
 1708579-original-talking-tom-3d-model-*.pdf
 
+# ===== Large ML models (download via download_models.py) =====
+models/llm/*.gguf
+
 # ===== IDE =====
 .vscode/
 .idea/
@@ -46,7 +49,7 @@ Thumbs.db
 desktop.ini
 
 # ===== Build artifacts =====
-launcher/dist/
-launcher/build/
-launcher/*.spec
-installer/Output/
+dist/
+build/
+*.spec
+installer/installer/

@@ -22,7 +22,7 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 DisableProgramGroupPage=yes
-LicenseFile=license.txt
+LicenseFile=..\license.txt
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -32,42 +32,42 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Launcher
-Source: "launcher.py"; DestDir: "{app}"; Flags: ignoreversion
-Source: "run.bat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\launcher.py"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\run.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Backend Python code
-Source: "backend\*.py"; DestDir: "{app}\backend"; Flags: ignoreversion recursesubdirs
-Source: "backend\app\*"; DestDir: "{app}\backend\app"; Flags: ignoreversion recursesubdirs
+Source: "..\backend\*.py"; DestDir: "{app}\backend"; Flags: ignoreversion recursesubdirs
+Source: "..\backend\app\*"; DestDir: "{app}\backend\app"; Flags: ignoreversion recursesubdirs
 
 ; Godot project
-Source: "godot\project.godot"; DestDir: "{app}\godot"; Flags: ignoreversion
-Source: "godot\scenes\*"; DestDir: "{app}\godot\scenes"; Flags: ignoreversion recursesubdirs
-Source: "godot\scripts\*"; DestDir: "{app}\godot\scripts"; Flags: ignoreversion recursesubdirs
-Source: "godot\models\*.glb"; DestDir: "{app}\godot\models"; Flags: ignoreversion
-Source: "godot\models\*.png"; DestDir: "{app}\godot\models"; Flags: ignoreversion
-Source: "godot\models\*.jpg"; DestDir: "{app}\godot\models"; Flags: ignoreversion
+Source: "..\godot\project.godot"; DestDir: "{app}\godot"; Flags: ignoreversion
+Source: "..\godot\scenes\*"; DestDir: "{app}\godot\scenes"; Flags: ignoreversion recursesubdirs
+Source: "..\godot\scripts\*"; DestDir: "{app}\godot\scripts"; Flags: ignoreversion recursesubdirs
+Source: "..\godot\models\*.glb"; DestDir: "{app}\godot\models"; Flags: ignoreversion
+Source: "..\godot\models\*.png"; DestDir: "{app}\godot\models"; Flags: ignoreversion
+Source: "..\godot\models\*.jpg"; DestDir: "{app}\godot\models"; Flags: ignoreversion
 
 ; Piper TTS
-Source: "piper\*"; DestDir: "{app}\piper"; Flags: ignoreversion recursesubdirs
+Source: "..\piper\*"; DestDir: "{app}\piper"; Flags: ignoreversion recursesubdirs
 
 ; ML models
-Source: "yolov8n.pt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\yolov8n.pt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Dashboard
-Source: "dashboard\index.html"; DestDir: "{app}\dashboard"; Flags: ignoreversion
-Source: "dashboard\src\*"; DestDir: "{app}\dashboard\src"; Flags: ignoreversion recursesubdirs
-Source: "dashboard\public\*"; DestDir: "{app}\dashboard\public"; Flags: ignoreversion recursesubdirs
-Source: "dashboard\package.json"; DestDir: "{app}\dashboard"; Flags: ignoreversion
-Source: "dashboard\vite.config.js"; DestDir: "{app}\dashboard"; Flags: ignoreversion
+Source: "..\dashboard\index.html"; DestDir: "{app}\dashboard"; Flags: ignoreversion
+Source: "..\dashboard\src\*"; DestDir: "{app}\dashboard\src"; Flags: ignoreversion recursesubdirs
+Source: "..\dashboard\public\*"; DestDir: "{app}\dashboard\public"; Flags: ignoreversion recursesubdirs
+Source: "..\dashboard\package.json"; DestDir: "{app}\dashboard"; Flags: ignoreversion
+Source: "..\dashboard\vite.config.js"; DestDir: "{app}\dashboard"; Flags: ignoreversion
 
 ; Requirements
-Source: "requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; License
-Source: "license.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\license.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Docs
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\run.bat"

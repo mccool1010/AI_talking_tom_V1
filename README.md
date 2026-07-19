@@ -53,7 +53,14 @@ venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Download AI models (LLM + TTS — ~700MB, too large for GitHub)
+python download_models.py
 ```
+
+> **Note:** The LLM model (~2GB) is downloaded from HuggingFace. If `download_models.py` fails, download manually:
+> - [Qwen 2.5 3B Instruct GGUF](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF) → place in `models/llm/`
+> - [Piper Voice](https://huggingface.co/rhasspy/piper-voices) → place in `models/tts/`
 
 ### Running
 
