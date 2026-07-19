@@ -59,7 +59,7 @@ An AI-powered virtual companion built with Godot 4.6, Python, and local LLMs. To
 ### Prerequisites
 - **Python 3.10+** 
 - **Godot 4.6** — [Download](https://godotengine.org/download)
-- **MongoDB** — [Download](https://www.mongodb.com/try/download/community)
+- **MongoDB** — [Download](https://www.mongodb.com/try/download/community) *(Note: The database and collections are created automatically on first launch. Just install and start the service!)*
 - **Git LFS** — `git lfs install`
 
 ### Installation
