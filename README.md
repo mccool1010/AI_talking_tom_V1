@@ -1,5 +1,14 @@
 # AI Talking Tom 🐱
 
+![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)
+![Godot](https://img.shields.io/badge/Godot-4.6-478CBF?style=for-the-badge&logo=godotengine)
+![LLM](https://img.shields.io/badge/AI-Local_LLM-orange?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
+
+<div align="center">
+  <img src="https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif" alt="Fun Cat GIF" width="250"/>
+</div>
+
 An AI-powered virtual companion built with Godot 4.6, Python, and local LLMs. Tom listens to you, understands emotions, remembers conversations, and responds with personality.
 
 ## Features
@@ -12,6 +21,22 @@ An AI-powered virtual companion built with Godot 4.6, Python, and local LLMs. To
 - **Personality** — Dynamic traits that evolve over conversations
 - **3D Avatar** — Animated Talking Tom model with 62 animations
 - **Dashboard** — Web UI for monitoring Tom's internal state
+
+## Screenshots
+
+*(Please save the screenshots you captured to an `assets/` folder in this repository with these names so they show up properly!)*
+
+### The Talking Tom Avatar
+![Tom Avatar](./assets/screenshot_avatar.png)
+
+### Web Dashboard & Vitals
+![Dashboard Vitals](./assets/screenshot_dashboard.png)
+
+### Dashboard Login
+![Login Screen](./assets/screenshot_login.png)
+
+### Memories & Conversation Logs
+![Memories and Logs](./assets/screenshot_memory.png)
 
 ## Architecture
 
