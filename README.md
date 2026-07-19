@@ -54,13 +54,12 @@ venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Download AI models (LLM + TTS — ~700MB, too large for GitHub)
+# Download the LLM model (~2GB, too large for GitHub)
 python download_models.py
 ```
 
-> **Note:** The LLM model (~2GB) is downloaded from HuggingFace. If `download_models.py` fails, download manually:
-> - [Qwen 2.5 3B Instruct GGUF](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF) → place in `models/llm/`
-> - [Piper Voice](https://huggingface.co/rhasspy/piper-voices) → place in `models/tts/`
+> **Note:** If `download_models.py` fails, download the Qwen 2.5 3B GGUF manually from
+> [HuggingFace](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF) and place it in `models/llm/`
 
 ### Running
 
@@ -84,10 +83,17 @@ python main.py
 # Open Godot → Import project from godot/ folder → Press F5
 ```
 
-### LLM Model Setup
+### AI Models
 
-Download a GGUF model and place it in `backend/app/models/llm/`:
-- Recommended: Qwen2.5 or similar small model in GGUF format
+| Model | Size | How to get |
+|---|---|---|
+| **Qwen 2.5 3B** (LLM) | 2 GB | `python download_models.py` |
+| **Piper TTS voice** | 60 MB | Included in repo |
+| **Piper engine** | 20 MB | Included in repo |
+| **YOLOv8n** | 6.5 MB | Included in repo |
+| **Faster Whisper** | 150 MB | Auto-downloads on first run |
+| **DeepFace** | 500 MB | Auto-downloads on first run |
+| **wav2vec2 emotion** | 360 MB | Auto-downloads on first run |
 
 ## Project Structure
 
