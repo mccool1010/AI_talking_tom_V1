@@ -12,3 +12,4 @@ piper/*.ort filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
 models/tts/*.onnx filter=lfs diff=lfs merge=lfs -text
 source/*.zip filter=lfs diff=lfs merge=lfs -text
+installer/Output/*.exe filter=lfs diff=lfs merge=lfs -text
