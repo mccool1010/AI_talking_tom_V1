@@ -1,0 +1,12 @@
+# Git LFS - track large binary files
+# 3D Models (GLB files)
+godot/models/*.glb filter=lfs diff=lfs merge=lfs -text
+# Model textures
+godot/models/*.png filter=lfs diff=lfs merge=lfs -text
+godot/models/*.jpg filter=lfs diff=lfs merge=lfs -text
+# Piper TTS binaries
+piper/*.exe filter=lfs diff=lfs merge=lfs -text
+piper/*.dll filter=lfs diff=lfs merge=lfs -text
+piper/*.ort filter=lfs diff=lfs merge=lfs -text
+# ML model weights
+*.pt filter=lfs diff=lfs merge=lfs -text

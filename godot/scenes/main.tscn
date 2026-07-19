@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://c0e6s2u2shdr3"]
+
+[ext_resource type="PackedScene" uid="uid://dhf7lwoofpi4l" path="res://models/talking_tom_cat_3_animations.glb" id="1"]
+[ext_resource type="Script" uid="uid://cov6tepwxti45" path="res://scripts/main.gd" id="2"]
+
+[node name="Main" type="Node3D" unique_id=436248146]
+script = ExtResource("2")
+
+[node name="TomModel" parent="." unique_id=131235265 instance=ExtResource("1")]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1737536560]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 4)
+fov = 52.469833

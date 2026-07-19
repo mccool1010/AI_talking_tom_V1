@@ -1,0 +1,52 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+.env
+
+# ===== Godot =====
+.godot/
+
+# ===== Godot Editor Binary (172MB - users download separately) =====
+Godot_v4.6.2-stable_win64.exe
+Godot_v4.6.2-stable_win64_console.exe
+
+# ===== Node/Dashboard =====
+node_modules/
+dashboard/dist/
+
+# ===== Runtime/temp files =====
+*.wav
+recording.wav
+output.wav
+
+# ===== Old model files in root (not used) =====
+scene.bin
+scene.gltf
+talking_tom_adult_sparkle.glb
+talking_tom_adult_sparkle.usdz
+old-talking-tom-model-2010.stl
+1708579-original-talking-tom-3d-model-*.pdf
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== OS =====
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ===== Build artifacts =====
+launcher/dist/
+launcher/build/
+launcher/*.spec
+installer/Output/

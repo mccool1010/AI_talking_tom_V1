@@ -1,0 +1,11 @@
+Model Information:
+* title:	talking_tom_adult_sparkle
+* source:	https://sketchfab.com/3d-models/talking-tom-adult-sparkle-6e85b244773b4a9da71bb4acfd1b0cf5
+* author:	juicetime32 (https://sketchfab.com/justionsosa2017)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "talking_tom_adult_sparkle" (https://sketchfab.com/3d-models/talking-tom-adult-sparkle-6e85b244773b4a9da71bb4acfd1b0cf5) by juicetime32 (https://sketchfab.com/justionsosa2017) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

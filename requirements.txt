@@ -1,0 +1,32 @@
+# Core ML/AI
+torch
+transformers
+faster-whisper
+deepface
+speechbrain
+ultralytics
+
+# LLM
+llama-cpp-python
+
+# Audio
+sounddevice
+soundfile
+scipy
+playsound
+vosk
+
+# Computer Vision
+opencv-python
+numpy
+
+# Web/API
+fastapi
+uvicorn
+pydantic
+
+# Database
+pymongo
+
+# Dashboard
+requests
