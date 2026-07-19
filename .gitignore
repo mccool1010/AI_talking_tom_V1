@@ -52,3 +52,5 @@ desktop.ini
 dist/
 build/
 *.spec
+installer/Output/
+installer/installer/
