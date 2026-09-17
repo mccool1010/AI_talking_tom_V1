@@ -25,6 +25,20 @@ def _load_env_file(path):
 _load_env_file(REPO_ROOT / "tom.env")
 
 
+def _physical_cores():
+    try:
+        import psutil
+        return psutil.cpu_count(logical=False) or 4
+    except ImportError:
+        return max(1, (os.cpu_count() or 8) // 2)
+
+
+# ultralytics sets OMP_NUM_THREADS=1 on import when it is unset, which made
+# Whisper and the voice-emotion model run single-threaded (about 2x slower).
+# Setting it first keeps every model on all physical cores.
+os.environ.setdefault("OMP_NUM_THREADS", os.environ.get("TOM_CPU_THREADS", str(_physical_cores())))
+
+
 def _str(name, default):
     return os.environ.get(name, str(default))
 
