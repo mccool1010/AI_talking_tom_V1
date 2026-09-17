@@ -57,7 +57,7 @@ An AI-powered virtual companion built with Godot 4.6, Python, and local LLMs. To
 ## Quick Start
 
 ### Prerequisites
-- **Python 3.10+** 
+- **Python 3.12** (the pinned dependencies are tested on 3.12)
 - **Godot 4.6** — [Download](https://godotengine.org/download)
 - **MongoDB** — [Download](https://www.mongodb.com/try/download/community) *(Note: The database and collections are created automatically on first launch. Just install and start the service!)*
 - **Git LFS** — `git lfs install`
@@ -76,8 +76,11 @@ git lfs pull
 python -m venv venv
 venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (exact, tested versions)
+pip install -r requirements.lock
+
+# Build the web dashboard (served by the backend at http://localhost:8000)
+cd dashboard && npm ci && npm run build && cd ..
 
 # Download the LLM model (~2GB, too large for GitHub)
 python download_models.py
@@ -99,6 +102,8 @@ python launcher.py
 ```
 
 **Option 3: Manual**
+
+The backend logs to the console and to `runtime/logs/tom.log`.
 ```bash
 # Terminal 1: Start backend
 cd backend
@@ -120,12 +125,46 @@ python main.py
 | **DeepFace** | 500 MB | Auto-downloads on first run |
 | **wav2vec2 emotion** | 360 MB | Auto-downloads on first run |
 
+## Configuration
+
+Settings live in [backend/config.py](backend/config.py) and can be overridden with
+environment variables or a `tom.env` file in the repo root. Copy
+[tom.env.example](tom.env.example) to get started. Common settings:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `TOM_LLM_GPU_LAYERS` | `-1` | Layers offloaded to the GPU (needs a CUDA build of llama-cpp-python) |
+| `TOM_WHISPER_DEVICE` | `auto` | `auto` tries CUDA, then falls back to CPU |
+| `TOM_STT_SILENCE_SECONDS` | `1.0` | Silence that ends your turn |
+| `TOM_MONGO_URI` | `mongodb://localhost:27017/` | MongoDB connection |
+| `TOM_API_HOST` | `127.0.0.1` | Dashboard API bind address |
+
+## Security
+
+The dashboard shows the live camera, stored memories and chat history, so:
+
+- The API listens on `127.0.0.1` only. Nothing on your network can reach it unless you change `TOM_API_HOST`.
+- Every data endpoint needs a session token from logging in. A session only sees data while its user is the one Tom is talking to.
+- The default account has no password and can only log in from the same machine. Give every account a password before exposing the API.
+- Repeated failed logins lock the account for 5 minutes.
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest            # unit tests: no models, GPU or MongoDB needed
+cd dashboard && npm run lint
+```
+
+The `backend/test_*.py` files are manual hardware and model scripts, not part of the test suite.
+
 ## Project Structure
 
 ```
 AI-Talking-Tom/
 ├── backend/           # Python AI brain
-│   ├── main.py        # Main loop
+│   ├── main.py        # Service wiring and main loop
+│   ├── config.py      # All settings (env / tom.env overridable)
 │   ├── llm_service.py # LLM integration
 │   ├── stt_service.py # Speech-to-text
 │   ├── tts_service.py # Text-to-speech
@@ -137,6 +176,7 @@ AI-Talking-Tom/
 │   └── scripts/       # GDScript
 ├── dashboard/         # React/Vite web dashboard
 ├── piper/             # Piper TTS engine
+├── tests/             # pytest suite
 ├── launcher.py        # GUI launcher
 ├── run.bat            # Batch launcher
 └── requirements.txt   # Python dependencies
