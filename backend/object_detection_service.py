@@ -1,34 +1,22 @@
+import logging
+
 from ultralytics import YOLO
 
+import config
+
+log = logging.getLogger(__name__)
+
+MIN_CONFIDENCE = 0.50
+
+
 class ObjectDetectionService:
-
     def __init__(self):
-
-        print("Loading YOLO...")
-
-        self.model = YOLO("yolov8n.pt")
-
-        print("YOLO Ready")
+        self.model = YOLO(str(config.YOLO_MODEL))
 
     def detect(self, frame):
-
-        results = self.model(frame)
-
-        objects = []
-
-        for result in results:
-
+        objects = set()
+        for result in self.model(frame, verbose=False):
             for box in result.boxes:
-
-                confidence = float(box.conf[0])
-
-                if confidence < 0.50:
-                    continue
-
-                class_id = int(box.cls[0])
-
-                label = self.model.names[class_id]
-
-                objects.append(label)
-
-        return list(set(objects))
+                if float(box.conf[0]) >= MIN_CONFIDENCE:
+                    objects.add(self.model.names[int(box.cls[0])])
+        return list(objects)

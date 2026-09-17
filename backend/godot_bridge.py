@@ -1,6 +1,11 @@
 import socket
 import threading
 import json
+import logging
+
+import config
+
+log = logging.getLogger(__name__)
 
 
 class GodotBridge:
@@ -17,9 +22,11 @@ class GodotBridge:
         {"type": "state",   "phase": "listening"}
     """
 
-    def __init__(self, host="127.0.0.1", port=9090):
-        self._host = host
-        self._port = port
+    SEND_TIMEOUT = 1.0
+
+    def __init__(self, host=None, port=None):
+        self._host = host or config.GODOT_HOST
+        self._port = port or config.GODOT_PORT
         self._client = None
         self._lock = threading.Lock()
         self._running = False
@@ -27,9 +34,9 @@ class GodotBridge:
     def start(self):
         """Start the TCP server in a background thread."""
         self._running = True
-        thread = threading.Thread(target=self._serve, daemon=True)
+        thread = threading.Thread(target=self._serve, daemon=True, name="godot-bridge")
         thread.start()
-        print(f"[GodotBridge] Listening on {self._host}:{self._port}")
+        log.info("Godot bridge listening on %s:%d", self._host, self._port)
 
     def _serve(self):
         """Accept one Godot client at a time."""
@@ -42,6 +49,8 @@ class GodotBridge:
         while self._running:
             try:
                 client, addr = server.accept()
+                # A stalled Godot must never block the main loop.
+                client.settimeout(self.SEND_TIMEOUT)
                 with self._lock:
                     if self._client:
                         try:
@@ -49,7 +58,7 @@ class GodotBridge:
                         except OSError:
                             pass
                     self._client = client
-                print(f"[GodotBridge] Godot connected from {addr}")
+                log.info("Godot connected from %s", addr)
             except socket.timeout:
                 continue
             except OSError:
@@ -70,7 +79,12 @@ class GodotBridge:
             try:
                 line = json.dumps(msg) + "\n"
                 self._client.sendall(line.encode("utf-8"))
-            except (BrokenPipeError, ConnectionResetError, OSError):
+            except OSError:
+                log.info("Godot disconnected")
+                try:
+                    self._client.close()
+                except OSError:
+                    pass
                 self._client = None
 
     def send_speak(self, text, emotion="neutral"):
