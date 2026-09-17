@@ -58,3 +58,6 @@ installer/installer/
 # ===== Local config and runtime output =====
 tom.env
 runtime/
+
+# ===== Benchmark datasets (downloaded / generated) =====
+benchmarks/data/

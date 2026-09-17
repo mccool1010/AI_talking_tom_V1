@@ -1,0 +1,729 @@
+{
+  "statements": 30,
+  "per_category": {
+    "likes": 9,
+    "dislikes": 7,
+    "facts": 14
+  },
+  "extraction_recall": 1.0,
+  "extraction_recall_right_category": 0.9,
+  "extraction_seconds_mean": 1.676798763333257,
+  "retained": 1.0,
+  "stored_per_category": {
+    "likes": 12,
+    "dislikes": 8,
+    "facts": 12
+  },
+  "retrieval_hit_rate_at_3": 0.9666666666666667,
+  "retrieval_precision_at_3": 0.8793103448275862,
+  "retrieval_latency_ms_mean": 1.9025433333202575,
+  "unrelated_questions_retrieving_anything": 0.3,
+  "days_until_unused_memory_forgotten": {
+    "1": 7,
+    "5": 11,
+    "9": 15,
+    "10": 39,
+    "13": 42
+  },
+  "stored": {
+    "likes": [
+      "playing football",
+      "biryani",
+      "jazz music",
+      "reading science fiction novels",
+      "Chess",
+      "hiking in the mountains",
+      "Bruno",
+      "painting with watercolors",
+      "learning to play the guitar",
+      "Luna",
+      "playing the piano",
+      "red Honda"
+    ],
+    "dislikes": [
+      "waking up early",
+      "spicy food",
+      "rainy weather",
+      "traffic jams",
+      "horror movies",
+      "Mathematics homework",
+      "peanuts",
+      "doing laundry"
+    ],
+    "facts": [
+      "Name is Hari",
+      "Studies computer science",
+      "Job is student",
+      "Building a robot for college project",
+      "Sister lives in Bangalore",
+      "Works part time at a coffee shop",
+      "Born in Kerala",
+      "Goal is to become a game developer",
+      "Age is 21",
+      "Allergic to peanuts",
+      "Moved to Chennai last year",
+      "Training for a marathon"
+    ]
+  },
+  "unrelated": {
+    "What time is it?": [],
+    "Tell me a joke.": [],
+    "How is the weather?": [
+      "rainy weather"
+    ],
+    "I am tired.": [],
+    "Can you sing a song?": [],
+    "What is your name?": [
+      "Name is Hari"
+    ],
+    "I went to the shop.": [
+      "Works part time at a coffee shop"
+    ],
+    "Is it a good day?": [],
+    "Let me think about it.": [],
+    "Where are you?": []
+  },
+  "cases": [
+    {
+      "statement": "I love playing football on weekends.",
+      "category": "likes",
+      "keyword": "football",
+      "extracted": {
+        "likes": [
+          "playing football"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 4.4740909000011015,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Do you remember which sport I enjoy playing?",
+      "retrieved": [
+        "playing football",
+        "learning to play the guitar",
+        "playing the piano"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "My favourite food is biryani.",
+      "category": "likes",
+      "keyword": "biryani",
+      "extracted": {
+        "likes": [
+          "biryani"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.7043942000000243,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "What should I cook for dinner, maybe biryani?",
+      "retrieved": [
+        "biryani"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I really enjoy listening to jazz music.",
+      "category": "likes",
+      "keyword": "jazz",
+      "extracted": {
+        "likes": [
+          "jazz music"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.7954100000006292,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Can you play some jazz for me?",
+      "retrieved": [
+        "playing football",
+        "jazz music",
+        "learning to play the guitar"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I like reading science fiction novels.",
+      "category": "likes",
+      "keyword": "science fiction",
+      "extracted": {
+        "likes": [
+          "reading science fiction novels"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.5836006999998062,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Any science fiction book suggestions?",
+      "retrieved": [
+        "reading science fiction novels",
+        "Studies computer science"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "Chess is my favourite board game.",
+      "category": "likes",
+      "keyword": "chess",
+      "extracted": {
+        "likes": [
+          "Chess"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.6247058999997535,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Want to play chess with me?",
+      "retrieved": [
+        "playing football",
+        "Chess",
+        "learning to play the guitar"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I love going hiking in the mountains.",
+      "category": "likes",
+      "keyword": "hiking",
+      "extracted": {
+        "likes": [
+          "hiking in the mountains"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.9666087999994488,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Should I go hiking this weekend?",
+      "retrieved": [
+        "hiking in the mountains"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I adore my dog Bruno.",
+      "category": "likes",
+      "keyword": "bruno",
+      "extracted": {
+        "likes": [
+          "Bruno"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.4655052999987674,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Guess what Bruno did today?",
+      "retrieved": [
+        "Bruno"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I enjoy painting with watercolors.",
+      "category": "likes",
+      "keyword": "watercolor",
+      "extracted": {
+        "likes": [
+          "painting with watercolors"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.6359030999992683,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I bought new watercolor paper.",
+      "retrieved": [
+        "painting with watercolors"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I hate waking up early.",
+      "category": "dislikes",
+      "keyword": "waking up early",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "waking up early"
+        ],
+        "facts": []
+      },
+      "seconds": 1.5643257000010635,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I have to wake up early tomorrow.",
+      "retrieved": [
+        "waking up early"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I can't stand spicy food.",
+      "category": "dislikes",
+      "keyword": "spicy",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "spicy food"
+        ],
+        "facts": []
+      },
+      "seconds": 1.5016823999994813,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "The restaurant only has spicy dishes.",
+      "retrieved": [
+        "spicy food"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I dislike rainy weather.",
+      "category": "dislikes",
+      "keyword": "rain",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "rainy weather"
+        ],
+        "facts": []
+      },
+      "seconds": 1.448477100000673,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "It looks like rain today.",
+      "retrieved": [],
+      "hit": false
+    },
+    {
+      "statement": "I really hate traffic jams.",
+      "category": "dislikes",
+      "keyword": "traffic",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "traffic jams"
+        ],
+        "facts": []
+      },
+      "seconds": 1.4432230000002164,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I was stuck in traffic again.",
+      "retrieved": [
+        "traffic jams"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I don't like horror movies.",
+      "category": "dislikes",
+      "keyword": "horror",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "horror movies"
+        ],
+        "facts": []
+      },
+      "seconds": 1.4598244999997405,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "My friends want to watch a horror film.",
+      "retrieved": [
+        "horror movies"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "Mathematics homework is something I hate.",
+      "category": "dislikes",
+      "keyword": "math",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "Mathematics homework"
+        ],
+        "facts": []
+      },
+      "seconds": 1.4663591999997152,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I have math homework tonight.",
+      "retrieved": [
+        "Mathematics homework"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "My name is Hari.",
+      "category": "facts",
+      "keyword": "hari",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Name is Hari"
+        ]
+      },
+      "seconds": 1.8316525999998703,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Do you know my name, is it Hari?",
+      "retrieved": [
+        "Name is Hari"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I am a computer science student.",
+      "category": "facts",
+      "keyword": "computer science",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Studies computer science",
+          "Job is student"
+        ]
+      },
+      "seconds": 1.794416700000511,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "My computer science exam is next week.",
+      "retrieved": [
+        "Studies computer science",
+        "reading science fiction novels"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I am building a robot for my college project.",
+      "category": "facts",
+      "keyword": "robot",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Building a robot for college project"
+        ]
+      },
+      "seconds": 1.6018526999996539,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "The robot finally moved today!",
+      "retrieved": [
+        "Building a robot for college project",
+        "Moved to Chennai last year"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "My sister lives in Bangalore.",
+      "category": "facts",
+      "keyword": "bangalore",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Sister lives in Bangalore"
+        ]
+      },
+      "seconds": 1.5841378000004624,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I'm flying to Bangalore tomorrow.",
+      "retrieved": [
+        "Sister lives in Bangalore"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I work part time at a coffee shop.",
+      "category": "facts",
+      "keyword": "coffee shop",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Works part time at a coffee shop"
+        ]
+      },
+      "seconds": 1.722228399999949,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Busy day at the coffee shop.",
+      "retrieved": [
+        "Works part time at a coffee shop"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I was born in Kerala.",
+      "category": "facts",
+      "keyword": "kerala",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Born in Kerala"
+        ]
+      },
+      "seconds": 1.3774201000014727,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I miss Kerala so much.",
+      "retrieved": [
+        "Born in Kerala"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I am learning to play the guitar.",
+      "category": "facts",
+      "keyword": "guitar",
+      "extracted": {
+        "likes": [
+          "learning to play the guitar"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.6544520999996166,
+      "right_category": false,
+      "any_category": true,
+      "retained": true,
+      "question": "My guitar teacher was impressed.",
+      "retrieved": [
+        "learning to play the guitar"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "My goal is to become a game developer.",
+      "category": "facts",
+      "keyword": "game developer",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Goal is to become a game developer"
+        ]
+      },
+      "seconds": 1.7235652999988815,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "How do I become a game developer?",
+      "retrieved": [
+        "Goal is to become a game developer"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I have a cat named Luna.",
+      "category": "facts",
+      "keyword": "luna",
+      "extracted": {
+        "likes": [
+          "Luna"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.443425199999183,
+      "right_category": false,
+      "any_category": true,
+      "retained": true,
+      "question": "Luna scratched the sofa.",
+      "retrieved": [
+        "Luna"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I am 21 years old.",
+      "category": "facts",
+      "keyword": "21",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Age is 21"
+        ]
+      },
+      "seconds": 1.5928850000000239,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Is 21 too young to start a company?",
+      "retrieved": [
+        "Age is 21"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I am allergic to peanuts.",
+      "category": "facts",
+      "keyword": "peanut",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "peanuts"
+        ],
+        "facts": [
+          "Allergic to peanuts"
+        ]
+      },
+      "seconds": 1.631497299998955,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Is there peanut in this cookie?",
+      "retrieved": [
+        "peanuts",
+        "Allergic to peanuts"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I play the piano every evening.",
+      "category": "likes",
+      "keyword": "piano",
+      "extracted": {
+        "likes": [
+          "playing the piano"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.4579111999992165,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "I practiced piano for two hours.",
+      "retrieved": [
+        "playing the piano"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I moved to Chennai last year.",
+      "category": "facts",
+      "keyword": "chennai",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Moved to Chennai last year"
+        ]
+      },
+      "seconds": 1.5269360000002052,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Chennai is so hot today.",
+      "retrieved": [
+        "Moved to Chennai last year"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I drive a red Honda.",
+      "category": "facts",
+      "keyword": "honda",
+      "extracted": {
+        "likes": [
+          "red Honda"
+        ],
+        "dislikes": [],
+        "facts": []
+      },
+      "seconds": 1.3854673000005278,
+      "right_category": false,
+      "any_category": true,
+      "retained": true,
+      "question": "My Honda broke down.",
+      "retrieved": [
+        "red Honda"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I'm training for a marathon.",
+      "category": "facts",
+      "keyword": "marathon",
+      "extracted": {
+        "likes": [],
+        "dislikes": [],
+        "facts": [
+          "Training for a marathon"
+        ]
+      },
+      "seconds": 1.4520685000006779,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "The marathon is in two weeks.",
+      "retrieved": [
+        "Training for a marathon"
+      ],
+      "hit": true
+    },
+    {
+      "statement": "I hate doing laundry.",
+      "category": "dislikes",
+      "keyword": "laundry",
+      "extracted": {
+        "likes": [],
+        "dislikes": [
+          "doing laundry"
+        ],
+        "facts": []
+      },
+      "seconds": 1.389935899998818,
+      "right_category": true,
+      "any_category": true,
+      "retained": true,
+      "question": "Ugh, laundry day again.",
+      "retrieved": [
+        "doing laundry"
+      ],
+      "hit": true
+    }
+  ]
+}

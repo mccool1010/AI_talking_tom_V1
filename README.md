@@ -129,6 +129,8 @@ python main.py
 
 All numbers below were measured on the machine listed. Everything ran on the CPU.
 
+📊 **Scripts, method and raw results: [benchmarks/](benchmarks/README.md)**. Each section below links to the script that produced it and to its JSON output.
+
 ### Hardware
 
 | Component | Spec |
@@ -140,39 +142,43 @@ All numbers below were measured on the machine listed. Everything ran on the CPU
 
 ### End-to-end latency (speech in → speech out)
 
-Measured over 12 conversational turns (spoken test phrases, Windows TTS voices), with the camera thread running as in normal use. The time runs from the moment you stop speaking to Tom's first audio sample, including the end-of-turn silence the app waits for.
+Measured over 12 conversational turns (spoken test phrases, Windows TTS voices), with the camera thread running as in normal use. The time runs from the moment you stop speaking to Tom's first audio sample, including the 1.2 s end-of-turn silence the app waits for.
 
 | | Mean | Median | p90 |
 |---|---|---|---|
-| End of speech → first audio | **5.8 s** | 5.6 s | 5.9 s |
-| Same, camera thread off | 4.8 s | 4.9 s | 5.1 s |
+| End of speech → first audio | **6.5 s** | 6.3 s | 6.7 s |
+| Same, camera thread off | 5.4 s | 5.5 s | 5.7 s |
 
-These runs used a 1.0 s end-of-turn silence; the current default is 1.2 s, which adds about 0.2 s. The original version of this project took 15.7 s (p90 21.0 s) on the same machine.
+The original version of this project took 15.7 s (p90 21.0 s) on the same machine.
+
+Script: [bench_pipeline.py](benchmarks/bench_pipeline.py) · Raw data: [pipeline.json](benchmarks/results/pipeline.json)
 
 ### Per stage
 
-| Stage | Model | Time (mean) |
+| Stage | Model | Time (mean, camera on) |
 |---|---|---|
-| Speech-to-text | Faster Whisper `base.en`, int8 | **0.61 s** (word error rate 2%) |
+| Speech-to-text | Faster Whisper `base.en`, int8 | **0.57 s** (word error rate 2%) |
 | Voice emotion | wav2vec2 (superb ER) | 0.31 s |
-| Memory retrieval | MongoDB + keyword ranking | < 10 ms |
-| LLM reply | Qwen 2.5 3B Instruct Q4_K_M (llama.cpp) | **3.13 s** for ~1,000 prompt + ~11 reply tokens |
-| Text-to-speech | Piper `en_US-lessac-medium` | **0.68 s** per reply (~4 s of audio) |
-| Memory extraction (after Tom speaks) | same Qwen model | 1.46 s |
+| Memory retrieval | MongoDB + keyword ranking | 3 ms |
+| LLM reply | Qwen 2.5 3B Instruct Q4_K_M (llama.cpp) | **3.68 s** for ~1,100 prompt + ~16 reply tokens |
+| Text-to-speech | Piper `en_US-lessac-medium` | **0.72 s** per reply (~4.2 s of audio) |
+| Memory extraction (after Tom speaks) | same Qwen model | 1.54 s |
 
-**LLM speed:** 16.4 tokens/s generation (5 × 128-token runs). The whole reply, including prompt processing, averages 3.6 tokens/s.
+**LLM speed:** 15.9 tokens/s generation (5 × 128-token runs). The whole reply, including prompt processing, averages 4.3 tokens/s.
 
 ### Peak RAM (all models loaded)
 
 | | |
 |---|---|
-| Backend process, peak | **6.4 GB** |
-| Of which, models after loading | 4.0 GB (Whisper, Qwen, YOLOv8n, DeepFace, wav2vec2) |
-| Piper TTS process, peak | 133 MB |
+| Backend process, peak | **6.3 GB** |
+| Of which, models after loading | 3.9 GB (Whisper, Qwen, YOLOv8n, DeepFace, wav2vec2) |
+| Piper TTS process, peak | 153 MB |
 
 The Godot renderer is not included. The original version peaked at 8.5 GB because it loaded Qwen twice.
 
 ### Emotion detection (face + voice fusion)
+
+Script: [bench_emotion.py](benchmarks/bench_emotion.py) · Raw data: [emotion.json](benchmarks/results/emotion.json), per clip: [emotion_clips.jsonl](benchmarks/results/emotion_clips.jsonl) · Dataset download: [download_ravdess.py](benchmarks/download_ravdess.py)
 
 **Test set:** [RAVDESS](https://zenodo.org/records/1188976) audio-visual speech clips, actors 01–04 (2 male, 2 female), **240 clips**. The main score uses the **112 clips** whose emotion the voice model can output (neutral, happy, sad, angry). Face: DeepFace, sampled every 0.2 s with a majority vote. Voice: wav2vec2, used only at ≥ 70% confidence. Fusion: face first, voice when the face looks neutral.
 
@@ -186,6 +192,8 @@ The Godot renderer is not included. The original version peaked at 8.5 GB becaus
 Fusion recall per emotion: neutral 15/16, happy 24/32, sad 25/32, angry 29/32. The original fusion rule scored 61.6%. The fusion rule and the 70% cutoff were chosen on this same set, so treat these numbers as optimistic. The actors are professionals, and results on a laptop webcam and microphone will be lower.
 
 ### Memory system
+
+Script: [bench_memory.py](benchmarks/bench_memory.py) · Raw data: [memory.json](benchmarks/results/memory.json)
 
 **Test set:** 30 labelled statements (9 likes, 7 dislikes, 14 facts), each passed through the real extraction model and saved to MongoDB, plus one follow-up question per statement and 10 unrelated questions.
 
@@ -253,6 +261,7 @@ AI-Talking-Tom/
 ├── dashboard/         # React/Vite web dashboard
 ├── piper/             # Piper TTS engine
 ├── tests/             # pytest suite
+├── benchmarks/        # Latency, emotion and memory benchmarks + results
 ├── launcher.py        # GUI launcher
 ├── run.bat            # Batch launcher
 └── requirements.txt   # Python dependencies
