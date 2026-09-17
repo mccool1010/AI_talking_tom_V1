@@ -1,6 +1,6 @@
 # AI Talking Tom 🐱
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)
+![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge&logo=python)
 ![Godot](https://img.shields.io/badge/Godot-4.6-478CBF?style=for-the-badge&logo=godotengine)
 ![LLM](https://img.shields.io/badge/AI-Local_LLM-orange?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
@@ -16,10 +16,10 @@ An AI-powered virtual companion built with Godot 4.6, Python, and local LLMs. To
 - **Speech Recognition** — Real-time STT with Faster Whisper
 - **Local LLM** — Runs entirely offline using llama.cpp
 - **Text-to-Speech** — Natural voice with Piper TTS
-- **Emotion Detection** — Face + voice emotion fusion
+- **Emotion Detection** — Face + voice emotion fusion (83% on RAVDESS, see below)
 - **Memory System** — Remembers likes, dislikes, facts about you
 - **Personality** — Dynamic traits that evolve over conversations
-- **3D Avatar** — Animated Talking Tom model with 62 animations
+- **3D Avatar** — Animated Talking Tom model with 62 animations and lip sync driven by the voice
 - **Dashboard** — Web UI for monitoring Tom's internal state
 
 ## Screenshots
@@ -124,6 +124,82 @@ python main.py
 | **Faster Whisper** | 150 MB | Auto-downloads on first run |
 | **DeepFace** | 500 MB | Auto-downloads on first run |
 | **wav2vec2 emotion** | 360 MB | Auto-downloads on first run |
+
+## Performance & Evaluation
+
+All numbers below were measured on the machine listed. Everything ran on the CPU.
+
+### Hardware
+
+| Component | Spec |
+|---|---|
+| CPU | Intel Core i7-13620H (10 cores / 16 threads) |
+| RAM | 23.6 GB |
+| GPU / VRAM | NVIDIA GeForce RTX 5050 Laptop, 8 GB (**not used**: 0 GB VRAM, all models run on the CPU) |
+| OS / runtime | Windows 11, Python 3.12, laptop plugged in |
+
+### End-to-end latency (speech in → speech out)
+
+Measured over 12 conversational turns (spoken test phrases, Windows TTS voices), with the camera thread running as in normal use. The time runs from the moment you stop speaking to Tom's first audio sample, including the end-of-turn silence the app waits for.
+
+| | Mean | Median | p90 |
+|---|---|---|---|
+| End of speech → first audio | **5.8 s** | 5.6 s | 5.9 s |
+| Same, camera thread off | 4.8 s | 4.9 s | 5.1 s |
+
+These runs used a 1.0 s end-of-turn silence; the current default is 1.2 s, which adds about 0.2 s. The original version of this project took 15.7 s (p90 21.0 s) on the same machine.
+
+### Per stage
+
+| Stage | Model | Time (mean) |
+|---|---|---|
+| Speech-to-text | Faster Whisper `base.en`, int8 | **0.61 s** (word error rate 2%) |
+| Voice emotion | wav2vec2 (superb ER) | 0.31 s |
+| Memory retrieval | MongoDB + keyword ranking | < 10 ms |
+| LLM reply | Qwen 2.5 3B Instruct Q4_K_M (llama.cpp) | **3.13 s** for ~1,000 prompt + ~11 reply tokens |
+| Text-to-speech | Piper `en_US-lessac-medium` | **0.68 s** per reply (~4 s of audio) |
+| Memory extraction (after Tom speaks) | same Qwen model | 1.46 s |
+
+**LLM speed:** 16.4 tokens/s generation (5 × 128-token runs). The whole reply, including prompt processing, averages 3.6 tokens/s.
+
+### Peak RAM (all models loaded)
+
+| | |
+|---|---|
+| Backend process, peak | **6.4 GB** |
+| Of which, models after loading | 4.0 GB (Whisper, Qwen, YOLOv8n, DeepFace, wav2vec2) |
+| Piper TTS process, peak | 133 MB |
+
+The Godot renderer is not included. The original version peaked at 8.5 GB because it loaded Qwen twice.
+
+### Emotion detection (face + voice fusion)
+
+**Test set:** [RAVDESS](https://zenodo.org/records/1188976) audio-visual speech clips, actors 01–04 (2 male, 2 female), **240 clips**. The main score uses the **112 clips** whose emotion the voice model can output (neutral, happy, sad, angry). Face: DeepFace, sampled every 0.2 s with a majority vote. Voice: wav2vec2, used only at ≥ 70% confidence. Fusion: face first, voice when the face looks neutral.
+
+| | 4-emotion accuracy (112 clips) | All 240 clips, 8 emotions ("calm" counted as neutral) |
+|---|---|---|
+| Face only | 60.7% | 43.3% |
+| Voice only | 43.8% | 32.1% |
+| **Fusion** | **83.0%** (93/112) | 52.9% |
+| Always guess the most common emotion | 28.6% | – |
+
+Fusion recall per emotion: neutral 15/16, happy 24/32, sad 25/32, angry 29/32. The original fusion rule scored 61.6%. The fusion rule and the 70% cutoff were chosen on this same set, so treat these numbers as optimistic. The actors are professionals, and results on a laptop webcam and microphone will be lower.
+
+### Memory system
+
+**Test set:** 30 labelled statements (9 likes, 7 dislikes, 14 facts), each passed through the real extraction model and saved to MongoDB, plus one follow-up question per statement and 10 unrelated questions.
+
+| Metric | Result |
+|---|---|
+| Facts retained (saved to the profile) | **30/30 (100%)** |
+| Extraction recall | 100% (90% in the right category) |
+| Retrieval hit rate: correct memory in top 3 | **29/30 (96.7%)** |
+| Retrieval precision@3 | 88% |
+| Unrelated questions that retrieved anything | 3/10 |
+| Retrieval latency | ~2 ms |
+| Forgetting | An unused memory with the default importance of 5 disappears after 11 days; importance ≥ 10 lasts 39–42 days |
+
+The original version saved 37% of these statements (no likes or dislikes at all) and had a 30% hit rate.
 
 ## Configuration
 
