@@ -228,6 +228,7 @@ class TomApp:
             internal_thoughts,
             self.environment.objects,
             traits,
+            user_name=self.user_context.get_user_name(),
         )
 
         self.tts.speak(response)
@@ -346,8 +347,10 @@ class TomApp:
         self._running = False
 
     def shutdown(self):
+        import llm_provider
+
         log.info("Shutting down...")
-        for step in (self.stt.stop, self.face.stop, self.godot.stop):
+        for step in (self.stt.stop, self.face.stop, self.godot.stop, llm_provider.close):
             try:
                 step()
             except Exception:

@@ -79,3 +79,12 @@ def set_llm(llm):
     global _llm
     with _lock:
         _llm = llm
+
+
+def close():
+    """Free the model before interpreter shutdown (avoids a noisy __del__ traceback)."""
+    global _llm
+    with _lock:
+        if _llm is not None and hasattr(_llm, "close"):
+            _llm.close()
+        _llm = None

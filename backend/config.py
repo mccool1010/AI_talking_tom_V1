@@ -67,6 +67,7 @@ STT_USE_VAD = _bool("TOM_STT_USE_VAD", True)
 PIPER_EXE = _path("TOM_PIPER_EXE", "piper/piper.exe")
 PIPER_VOICE = _path("TOM_PIPER_VOICE", "models/tts/en_US-lessac-medium.onnx")
 YOLO_MODEL = _path("TOM_YOLO_MODEL", "yolov8n.pt")
+VOICE_MIN_CONFIDENCE = _float("TOM_VOICE_MIN_CONFIDENCE", 0.70)
 
 # ---- Runtime files ----
 RUNTIME_DIR = _path("TOM_RUNTIME_DIR", "runtime")

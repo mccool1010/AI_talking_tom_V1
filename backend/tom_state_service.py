@@ -1,5 +1,17 @@
+import logging
+import time
+
 import config
 import db
+
+ENERGY_RECOVERY_PER_HOUR = 20  # Tom rests while nobody is talking to him
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
+
 
 class TomStateService:
 
@@ -18,6 +30,20 @@ class TomStateService:
         self.energy = doc["energy"]
         self.friendliness = doc["friendliness"]
         self.curiosity = doc["curiosity"]
+        self.updated_at = doc.get("updated_at")
+        self.recover()
+
+    def recover(self, now=None):
+        """Restore energy for the time since the last update."""
+        now = time.time() if now is None else now
+        if self.updated_at is not None:
+            hours = max(0.0, (now - self.updated_at) / 3600)
+            self.energy = round(min(100, self.energy + ENERGY_RECOVERY_PER_HOUR * hours), 1)
+        self.updated_at = now
+        self.collection.update_one(
+            {"tom_id": self.user_id},
+            {"$set": {"energy": self.energy, "updated_at": now}},
+        )
 
     def update_energy(self, amount):
         self.energy += amount
@@ -33,7 +59,7 @@ class TomStateService:
                 }
              }
              )
-        print("Energy:", self.energy)
+        _debug("Energy:", self.energy)
     def update_friendliness(self, amount):
         self.friendliness += amount
 
@@ -50,7 +76,7 @@ class TomStateService:
             }
           }
          )
-        print("Friendliness:",self.friendliness)
+        _debug("Friendliness:",self.friendliness)
     def update_curiosity(self, amount):
         self.curiosity += amount
         self.curiosity = max(0,min(100, self.curiosity))
@@ -66,8 +92,9 @@ class TomStateService:
             }
          }
          )
-        print("Curiosity:",self.curiosity)
+        _debug("Curiosity:",self.curiosity)
     def update_from_conversation(self, mood, personality=None):
+        self.recover()
         if personality is None:
             personality = {"laziness": 30, "base_curiosity": 50, "affection": 50}
         # Lazier Tom loses energy faster

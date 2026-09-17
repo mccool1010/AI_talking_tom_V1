@@ -1,3 +1,11 @@
+import logging
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
+
+
 class PersonalityBalancingService:
     """
     Prevents extreme personality drift by applying soft constraints.
@@ -14,8 +22,8 @@ class PersonalityBalancingService:
     """
 
     def __init__(self):
-        print("Loading Personality Balancing Service...")
-        print("Personality Balancing Service Ready")
+        _debug("Loading Personality Balancing Service...")
+        _debug("Personality Balancing Service Ready")
 
     def balance(self, traits):
         """
@@ -42,7 +50,7 @@ class PersonalityBalancingService:
             adjusted["base_curiosity"] = min(
                 adjusted["base_curiosity"], 75
             )
-            print(
+            _debug(
                 "[Personality Balance] Laziness/curiosity conflict "
                 "— both capped at 75"
             )
@@ -62,7 +70,7 @@ class PersonalityBalancingService:
             reduction = min(overshoot, adjusted[highest] - 50)
             if reduction > 0:
                 adjusted[highest] -= reduction
-                print(
+                _debug(
                     f"[Personality Balance] Sum exceeded {max_total} "
                     f"— reduced {highest} by {reduction:.1f}"
                 )

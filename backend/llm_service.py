@@ -12,7 +12,9 @@ SYSTEM_PROMPT = """You are Talking Tom, a real, playful talking pet cat who is p
 
 Character:
 - Behave like a curious house cat. Love cat jokes, purring and playful chat.
-- Occasionally say "Meow!", "Purr..." or "Paw-some!", and sometimes start a reply with "Meow!". Do not overuse catchphrases.
+- You are Tom. The person you talk to is the user; never call the user Tom.
+- Use the user's name only now and then (at most once every few replies), never twice in one reply.
+- A catchphrase ("Meow!", "Purr...", "Paw-some!") is optional; use one in at most every other reply, and do not start every reply the same way.
 - Sometimes tease playfully, ask a short follow-up question, make a simple cat joke, or talk about naps, food, boxes, sunshine or chasing things. Not every time.
 - Never say you are an AI, assistant, language model, chatbot or program. Never break character, even if asked.
 - Never mention games, videos, apps, companies or franchises.
@@ -47,16 +49,17 @@ def _join(items, limit=MAX_LIST_ITEMS):
 
 def build_context(emotion, energy, friendliness, curiosity, hunger, sleepiness, social_need,
                   likes, dislikes, relationship_context, retrieved_memories,
-                  internal_thoughts, objects, personality):
+                  internal_thoughts, objects, personality, user_name=None):
     p = {**DEFAULT_PERSONALITY, **(personality or {})}
     thoughts = internal_thoughts if isinstance(internal_thoughts, str) else " ".join(internal_thoughts or [])
     relationship = " ".join(str(relationship_context or "unknown").split())
     return (
         "[Context]\n"
+        f"User's name: {user_name or 'unknown'}\n"
         f"User emotion: {emotion}\n"
-        f"Tom: energy {energy}, friendliness {friendliness}, curiosity {curiosity}\n"
-        f"Needs: hunger {hunger}, sleepiness {sleepiness}, social need {social_need}\n"
-        f"Personality: confidence {p['confidence']}, curiosity {p['base_curiosity']}, "
+        f"Your state: energy {energy}, friendliness {friendliness}, curiosity {curiosity}\n"
+        f"Your needs: hunger {hunger}, sleepiness {sleepiness}, social need {social_need}\n"
+        f"Your personality: confidence {p['confidence']}, curiosity {p['base_curiosity']}, "
         f"laziness {p['laziness']}, affection {p['affection']}, mood stability {p['mood_stability']}\n"
         f"Relationship: {relationship}\n"
         f"User likes: {_join(likes)}\n"
@@ -116,11 +119,11 @@ class LLMService:
     def generate(self, text, emotion, energy, friendliness, curiosity, hunger, sleepiness,
                  social_need, likes, dislikes, facts, trust, friendship, attachment,
                  relationship_context, retrieved_memories, internal_thoughts, objects,
-                 personality=None):
+                 personality=None, user_name=None):
         context = build_context(
             emotion, energy, friendliness, curiosity, hunger, sleepiness, social_need,
             likes, dislikes, relationship_context, retrieved_memories,
-            internal_thoughts, objects, personality,
+            internal_thoughts, objects, personality, user_name,
         )
         response = llm_provider.chat(
             messages=self.build_messages(text, context),

@@ -1,5 +1,13 @@
+import logging
 import config
 import db
+
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
 
 
 class RelationshipService:
@@ -36,7 +44,7 @@ class RelationshipService:
             }
         }
     )
-        print(
+        _debug(
         "Trust:",
         self.trust
     )
@@ -57,7 +65,7 @@ class RelationshipService:
             }
         }
     )
-            print(
+            _debug(
         "Friendship:",
         self.friendship
     )
@@ -79,7 +87,7 @@ class RelationshipService:
             }
         }
     )
-         print(
+         _debug(
         "Attachment:",
         self.attachment
     )

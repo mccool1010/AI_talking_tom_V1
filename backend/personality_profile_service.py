@@ -1,6 +1,14 @@
+import logging
 import time
 import config
 import db
+
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
 
 
 class PersonalityProfileService:
@@ -76,7 +84,7 @@ class PersonalityProfileService:
         )
 
         if abs(amount) >= 0.5:
-            print(
+            _debug(
                 f"[Personality] {name}: "
                 f"{current:.1f} -> {new_value:.1f} "
                 f"(delta: {amount:+.1f})"

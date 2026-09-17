@@ -1,15 +1,23 @@
+import logging
 import random
+
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
 
 
 class IdleBehaviorService:
 
     def __init__(self):
 
-        print("Loading Idle Behavior Service...")
+        _debug("Loading Idle Behavior Service...")
         
         self.last_action = None
 
-        print("Idle Behavior Service Ready")
+        _debug("Idle Behavior Service Ready")
 
     def get_action(
         self,

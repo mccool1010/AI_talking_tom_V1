@@ -87,3 +87,19 @@ def test_parse_memory_json_handles_bad_output():
     assert parse_memory_json('["a"]') == empty
     assert parse_memory_json('{"likes": ["tea", "  ", null]}') == {
         "likes": ["tea"], "dislikes": [], "facts": []}
+
+
+def test_context_names_the_user_and_labels_toms_own_state(fake_llm, user):
+    service = LLMService(user)
+    generate(service, "hi", user_name="Hari")
+    context = fake_llm.calls[0]["messages"][-1]["content"]
+    assert "User's name: Hari" in context
+    assert "Your state: energy" in context
+    assert "\nTom:" not in context
+    assert "never call the user Tom" in SYSTEM_PROMPT
+
+
+def test_extraction_drops_items_not_in_the_utterance(fake_llm):
+    fake_llm.replies = ['{"likes": [], "dislikes": [], "facts": ["Name is Sam", "30 years old"]}']
+    assert MemoryExtractionService().extract("Hello, my name is Sam") == {
+        "likes": [], "dislikes": [], "facts": ["Name is Sam"]}

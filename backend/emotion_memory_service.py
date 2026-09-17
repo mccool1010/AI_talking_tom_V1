@@ -1,8 +1,16 @@
+import logging
 # emotion_memory_service.py
 
 from collections import defaultdict, Counter
 import config
 import db
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
+
 
 class EmotionMemoryService:
 
@@ -49,7 +57,7 @@ class EmotionMemoryService:
             scores,
             key=scores.get
         )
-        print("Emotion History:", self.history)
+        _debug("Emotion History:", self.history)
         
 
         return mood

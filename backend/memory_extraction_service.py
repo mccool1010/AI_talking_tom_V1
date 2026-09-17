@@ -2,6 +2,7 @@ import json
 import logging
 
 import llm_provider
+from profile_memory_service import keywords
 
 log = logging.getLogger(__name__)
 
@@ -22,8 +23,11 @@ User: My favorite OS is Linux Mint.
 User: I am building an AI Talking Tom project.
 {"likes": [], "dislikes": [], "facts": ["Building AI Talking Tom project"]}
 
-User: My name is Priya and I'm 30.
-{"likes": [], "dislikes": [], "facts": ["Name is Priya", "30 years old"]}
+User: Call me Sam, I work as a nurse.
+{"likes": [], "dislikes": [], "facts": ["Name is Sam", "Works as a nurse"]}
+
+User: Hello, how are you?
+{"likes": [], "dislikes": [], "facts": []}
 
 User: I can't stand loud music.
 {"likes": [], "dislikes": ["loud music"], "facts": []}"""
@@ -52,6 +56,20 @@ def parse_memory_json(raw):
     return out
 
 
+def keep_grounded(data, text):
+    """
+    Drop items that share no content word with what the user said. Small
+    models sometimes copy facts from the prompt examples or invent them.
+    """
+    said = keywords(text)
+    out = {}
+    for key, items in data.items():
+        out[key] = [i for i in items if keywords(i) & said]
+        for dropped in set(items) - set(out[key]):
+            log.info("Ignored ungrounded %s: %r (from %r)", key, dropped, text)
+    return out
+
+
 class MemoryExtractionService:
     def __init__(self):
         # Shares the chat model instead of loading a second copy (~2.6 GB).
@@ -67,6 +85,6 @@ class MemoryExtractionService:
             max_tokens=100,
         )
         raw = response["choices"][0]["message"]["content"]
-        data = parse_memory_json(raw)
+        data = keep_grounded(parse_memory_json(raw), text)
         log.debug("Extracted memory from %r: %s", text, data)
         return data
