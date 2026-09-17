@@ -54,3 +54,7 @@ build/
 *.spec
 installer/Output/
 installer/installer/
+
+# ===== Local config and runtime output =====
+tom.env
+runtime/

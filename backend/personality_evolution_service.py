@@ -1,3 +1,11 @@
+import logging
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
+
+
 class PersonalityEvolutionService:
     """
     Computes personality trait changes based on interaction signals.
@@ -14,9 +22,9 @@ class PersonalityEvolutionService:
     """
 
     def __init__(self):
-        print("Loading Personality Evolution Service...")
+        _debug("Loading Personality Evolution Service...")
         self._conversation_count = 0
-        print("Personality Evolution Service Ready")
+        _debug("Personality Evolution Service Ready")
 
     def evolve(self, mood, relationship, emotion_history, needs):
         """

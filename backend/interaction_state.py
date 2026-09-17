@@ -1,6 +1,8 @@
+import logging
 import threading
 from enum import Enum
 
+log = logging.getLogger(__name__)
 
 class InteractionPhase(Enum):
     """
@@ -38,6 +40,7 @@ _VALID_TRANSITIONS = {
     },
     InteractionPhase.PRODUCING_SPEECH: {
         InteractionPhase.SPEAKING,
+        InteractionPhase.TURN_COMPLETE,  # synthesis failed, nothing to play
     },
     InteractionPhase.SPEAKING: {
         InteractionPhase.TURN_COMPLETE,
@@ -62,7 +65,6 @@ class InteractionState:
     def __init__(self):
         self._lock = threading.Lock()
         self._phase = InteractionPhase.IDLE
-        print("[InteractionState] Initialized -> IDLE")
 
     @property
     def phase(self):
@@ -91,17 +93,13 @@ class InteractionState:
         with self._lock:
             allowed = _VALID_TRANSITIONS.get(self._phase, set())
             if target not in allowed:
-                print(
-                    f"[InteractionState] INVALID transition: "
-                    f"{self._phase.value} -> {target.value}"
-                )
+                log.warning("Invalid interaction transition: %s -> %s",
+                            self._phase.value, target.value)
                 return False
 
             previous = self._phase
             self._phase = target
-            print(
-                f"[InteractionState] {previous.value} -> {target.value}"
-            )
+            log.debug("Interaction %s -> %s", previous.value, target.value)
             return True
 
     def force_idle(self):
@@ -112,10 +110,7 @@ class InteractionState:
         with self._lock:
             previous = self._phase
             self._phase = InteractionPhase.IDLE
-            print(
-                f"[InteractionState] FORCE RESET: "
-                f"{previous.value} -> idle"
-            )
+            log.warning("Interaction state force-reset: %s -> idle", previous.value)
 
     def is_busy(self):
         """

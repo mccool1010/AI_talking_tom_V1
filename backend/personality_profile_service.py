@@ -1,5 +1,14 @@
+import logging
 import time
-from pymongo import MongoClient
+import config
+import db
+
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
 
 
 class PersonalityProfileService:
@@ -28,37 +37,17 @@ class PersonalityProfileService:
     TRAIT_NAMES = list(DEFAULTS.keys())
 
     def __init__(self, user_context=None):
-        print("Loading Personality Profile Service...")
+        self.collection = db.get_db()["personality"]
+        self.switch_user(user_context.get_user_id() if user_context else config.DEFAULT_USER_ID)
 
-        self.user_id = user_context.get_user_id() if user_context else "default"
-
-        self.client = MongoClient("mongodb://localhost:27017/")
-        self.db = self.client["talking_tom"]
-        self.collection = self.db["personality"]
-
-        doc = self.collection.find_one({"tom_id": self.user_id})
-
-        if doc:
-            self.confidence = doc["confidence"]
-            self.base_curiosity = doc["base_curiosity"]
-            self.laziness = doc["laziness"]
-            self.affection = doc["affection"]
-            self.mood_stability = doc["mood_stability"]
-            print("Personality Profile Loaded")
-        else:
-            self.collection.insert_one({
-                "tom_id": self.user_id,
-                **self.DEFAULTS,
-                "last_updated": time.time()
-            })
-            self.confidence = self.DEFAULTS["confidence"]
-            self.base_curiosity = self.DEFAULTS["base_curiosity"]
-            self.laziness = self.DEFAULTS["laziness"]
-            self.affection = self.DEFAULTS["affection"]
-            self.mood_stability = self.DEFAULTS["mood_stability"]
-            print("New Personality Profile Created")
-
-        print("Personality Profile Service Ready")
+    def switch_user(self, user_id):
+        self.user_id = user_id
+        doc = self.collection.find_one({"tom_id": user_id})
+        if not doc:
+            doc = {"tom_id": user_id, **self.DEFAULTS, "last_updated": time.time()}
+            self.collection.insert_one(dict(doc))
+        for name, default in self.DEFAULTS.items():
+            setattr(self, name, doc.get(name, default))
 
     def get_traits(self):
         """Return all personality traits as a dictionary."""
@@ -95,7 +84,7 @@ class PersonalityProfileService:
         )
 
         if abs(amount) >= 0.5:
-            print(
+            _debug(
                 f"[Personality] {name}: "
                 f"{current:.1f} -> {new_value:.1f} "
                 f"(delta: {amount:+.1f})"

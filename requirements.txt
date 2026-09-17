@@ -1,32 +1,36 @@
-# Core ML/AI
-torch
-transformers
-faster-whisper
-deepface
-speechbrain
-ultralytics
+# Runtime dependencies (tested versions, Python 3.12, Windows).
+# Exact versions of every transitive package: requirements.lock
+# GPU: install a CUDA build of torch / llama-cpp-python instead of the CPU wheels.
 
-# LLM
-llama-cpp-python
+# Core ML/AI
+torch==2.14.0
+transformers==5.17.0
+faster-whisper==1.2.1
+deepface==0.0.101
+tensorflow==2.21.0
+tf-keras==2.21.0
+ultralytics==8.4.153
+silero-vad==6.2.1
+
+# LLM (CPU wheel: pip install --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu)
+llama-cpp-python==0.3.35
 
 # Audio
-sounddevice
-soundfile
-scipy
-playsound
-vosk
+sounddevice==0.5.6
+soundfile==0.14.0
+scipy==1.18.1
 
-# Computer Vision
-opencv-python
-numpy
+# Computer Vision (OpenCV 5 dropped the Haar cascades DeepFace needs)
+opencv-python==4.14.0.94
+numpy==2.5.3
 
 # Web/API
-fastapi
-uvicorn
-pydantic
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic==2.13.5
 
 # Database
-pymongo
+pymongo==4.18.1
 
-# Dashboard
-requests
+# Benchmarks / launcher
+psutil==7.2.2

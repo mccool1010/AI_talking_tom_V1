@@ -142,10 +142,14 @@ class TomLauncher:
         self.root.after(0, lambda: self._update_status("backend", "Starting...", "#ffaa00"))
 
         try:
+            # Output goes to a file: an unread PIPE fills up and freezes the backend.
+            log_dir = os.path.join(self.base_dir, "runtime", "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            self.backend_log = open(os.path.join(log_dir, "backend_console.log"), "w", encoding="utf-8")
             self.backend_proc = subprocess.Popen(
                 [self.python_exe, self.backend_script],
                 cwd=os.path.join(self.base_dir, "backend"),
-                stdout=subprocess.PIPE,
+                stdout=self.backend_log,
                 stderr=subprocess.STDOUT,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
@@ -187,6 +191,9 @@ class TomLauncher:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     proc.kill()
+        if getattr(self, "backend_log", None):
+            self.backend_log.close()
+            self.backend_log = None
 
         self._update_status("backend", "Stopped", "#666")
         self._update_status("godot", "Stopped", "#666")

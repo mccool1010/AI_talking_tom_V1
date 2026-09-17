@@ -1,3 +1,4 @@
+import logging
 import time
 from enum import Enum
 from interaction_state import InteractionState, InteractionPhase
@@ -5,6 +6,13 @@ from event_queue import (
     EventQueue, SpeechEvent,
     PRIORITY_CONVERSATION, PRIORITY_ENVIRONMENT, PRIORITY_IDLE
 )
+
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
 
 
 class DecisionAction(Enum):
@@ -76,7 +84,7 @@ class BrainManager:
         self._personality = personality_service
         self._idle_cooldown = idle_cooldown
         self._last_idle_time = time.time()
-        print("[BrainManager] Initialized")
+        _debug("[BrainManager] Initialized")
 
     @property
     def interaction_state(self):

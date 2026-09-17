@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
@@ -8,6 +9,13 @@ from queue import PriorityQueue, Empty
 PRIORITY_CONVERSATION = 100
 PRIORITY_ENVIRONMENT = 80
 PRIORITY_IDLE = 20
+
+
+log = logging.getLogger(__name__)
+
+
+def _debug(*args):
+    log.debug(" ".join(str(a) for a in args))
 
 
 @dataclass(order=True)
@@ -42,7 +50,7 @@ class EventQueue:
     def __init__(self):
         self._queue = PriorityQueue()
         self._lock = threading.Lock()
-        print("[EventQueue] Initialized")
+        _debug("[EventQueue] Initialized")
 
     def submit(self, event):
         """
@@ -52,7 +60,7 @@ class EventQueue:
             event: A SpeechEvent instance.
         """
         self._queue.put(event)
-        print(
+        _debug(
             f"[EventQueue] Submitted: source={event.source}, "
             f"priority={event.priority}, text='{event.text[:40]}...'"
             if len(event.text) > 40
@@ -83,7 +91,7 @@ class EventQueue:
                     self._queue.get_nowait()
                 except Empty:
                     break
-        print("[EventQueue] Cleared")
+        _debug("[EventQueue] Cleared")
 
     def size(self):
         """Return the number of pending events."""

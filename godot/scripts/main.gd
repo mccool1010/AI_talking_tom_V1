@@ -30,10 +30,19 @@ var current_emotion: String = "neutral"
 var blink_timer: float = 0.0
 var idle_fidget_timer: float = 0.0
 
-# --- Jaw bone for speech (controlled manually, not via talkAD) ---
-var jaw_bone_idx: int = -1
-var current_jaw_angle: float = 0.0
-var mouth_timer: float = 0.0
+# --- Mouth movement while speaking ---
+# A SkeletonModifier3D opens the jaw after the AnimationPlayer has run.
+# The backend sends the loudness envelope of each spoken line so the mouth
+# opens on syllables and closes in pauses.
+const JawModifier := preload("res://scripts/jaw_modifier.gd")
+var jaw_modifier: JawModifier
+var speech_envelope: Array = []
+var envelope_fps: float = 20.0
+var speech_time: float = 0.0
+var mouth_openness: float = 0.0
+var loudness_average: float = 0.0
+## Audio reaches the speakers a little after the speak event arrives.
+const AUDIO_LATENCY: float = 0.08
 
 
 func _ready() -> void:
@@ -49,6 +58,8 @@ func _ready() -> void:
 		# Start the breathing idle loop
 		if anim_player:
 			_play_idle()
+			if jaw_modifier:
+				jaw_modifier.set_talk_animation(_talk_animation_for("neutral"))
 
 		# --- Camera: portrait framing ---
 		var aabb := _get_combined_aabb(tom_model)
@@ -368,12 +379,9 @@ func _find_skeleton() -> void:
 	skeleton = _find_node_of_type(tom_model, "Skeleton3D") as Skeleton3D
 	if skeleton:
 		print("[Tom] Skeleton: ", skeleton.get_bone_count(), " bones")
-		# Find jaw bone for speech overlay
-		for i in range(skeleton.get_bone_count()):
-			var bn := skeleton.get_bone_name(i).to_lower()
-			if "jaw" in bn and jaw_bone_idx == -1:
-				jaw_bone_idx = i
-				print("[Tom] Jaw bone found: idx=", i, " name=", skeleton.get_bone_name(i))
+		jaw_modifier = JawModifier.new()
+		jaw_modifier.name = "JawModifier"
+		skeleton.add_child(jaw_modifier)
 	else:
 		print("[Tom] No skeleton found")
 
@@ -507,7 +515,8 @@ func _handle_event(json_str: String) -> void:
 
 	match event_type:
 		"speak":
-			_on_speak(data.get("text", ""), data.get("emotion", "neutral"))
+			_on_speak(data.get("text", ""), data.get("emotion", "neutral"),
+				data.get("envelope", []), float(data.get("fps", 20.0)))
 		"speak_end":
 			_on_speak_end()
 		"emotion":
@@ -520,10 +529,15 @@ func _handle_event(json_str: String) -> void:
 			print("[Tom] Unknown event: ", event_type)
 
 
-func _on_speak(text: String, emotion: String) -> void:
+func _on_speak(text: String, emotion: String, envelope: Array = [], fps: float = 20.0) -> void:
 	is_speaking = true
-	mouth_timer = 0.0
+	speech_time = 0.0
+	speech_envelope = envelope
+	envelope_fps = max(fps, 1.0)
 	current_emotion = emotion
+	if jaw_modifier:
+		jaw_modifier.set_talk_animation(_talk_animation_for(emotion))
+		jaw_modifier.restart()
 	print("[Tom] Speaking: ", text.substr(0, 40), "...")
 	_play_talk()
 
@@ -601,33 +615,52 @@ func _process(delta: float) -> void:
 
 
 # ---------------------------------------------------------------
-# Jaw bone overlay for speech (smooth, controlled mouth movement)
+# Mouth movement for speech
 # ---------------------------------------------------------------
 
+func _talk_animation_for(emotion: String) -> Animation:
+	if anim_player == null:
+		return null
+	var anim_name := "talkAD"
+	match emotion:
+		"happy", "surprise":
+			anim_name = "talkAH"
+		"sad", "fear":
+			anim_name = "talkAS"
+	if not anim_player.has_animation(anim_name):
+		anim_name = "talkAD"
+	return anim_player.get_animation(anim_name) if anim_player.has_animation(anim_name) else null
+
+
 func _animate_jaw(delta: float) -> void:
-	if skeleton == null or jaw_bone_idx < 0:
+	if jaw_modifier == null:
 		return
+	var target := 0.0
+	if is_speaking:
+		speech_time += delta
+		target = _speech_openness(speech_time - AUDIO_LATENCY)
+	# Open fast, close a bit slower, like a real mouth.
+	var rate := 18.0 if target > mouth_openness else 9.0
+	mouth_openness = lerp(mouth_openness, target, clamp(delta * rate, 0.0, 1.0))
+	# Emphasis = how far the voice is above its recent average (stressed syllables).
+	loudness_average = lerp(loudness_average, mouth_openness, clamp(delta * 2.0, 0.0, 1.0))
+	jaw_modifier.openness = mouth_openness
+	jaw_modifier.emphasis = clamp((mouth_openness - loudness_average) * 3.0, 0.0, 1.0) if is_speaking else 0.0
 
-	if not is_speaking:
-		# Smoothly close mouth when done speaking
-		current_jaw_angle = lerp(current_jaw_angle, 0.0, delta * 8.0)
-		if abs(current_jaw_angle) < 0.1:
-			current_jaw_angle = 0.0
-			skeleton.set_bone_pose_rotation(jaw_bone_idx, Quaternion.IDENTITY)
-		else:
-			skeleton.set_bone_pose_rotation(jaw_bone_idx,
-				Quaternion.from_euler(Vector3(deg_to_rad(current_jaw_angle), 0, 0)))
-		return
 
-	mouth_timer += delta
-
-	# Multi-frequency jaw for natural speech cadence
-	var fast := sin(mouth_timer * 18.0)
-	var med := sin(mouth_timer * 9.0)
-	var slow := sin(mouth_timer * 3.5)
-	var target_jaw: float = (fast * 0.25 + med * 0.4 + slow * 0.35) * 0.5 + 0.5
-	# Max 4 degrees — subtle lip movement
-	target_jaw = clamp(target_jaw * 4.0, 0.0, 4.0)
-	current_jaw_angle = lerp(current_jaw_angle, target_jaw, delta * 20.0)
-	skeleton.set_bone_pose_rotation(jaw_bone_idx,
-		Quaternion.from_euler(Vector3(deg_to_rad(current_jaw_angle), 0, 0)))
+func _speech_openness(t: float) -> float:
+	if t < 0.0:
+		return 0.0
+	if speech_envelope.is_empty():
+		# No envelope from the backend: generic talking rhythm.
+		var syllables := 0.5 + 0.5 * sin(t * 13.0)
+		var phrases := 0.55 + 0.45 * sin(t * 2.1 + 0.7)
+		return clamp(syllables * phrases, 0.0, 1.0)
+	# Linear interpolation between envelope frames avoids stepped movement.
+	var pos := t * envelope_fps
+	var i := int(pos)
+	if i >= speech_envelope.size():
+		return 0.0
+	var a := float(speech_envelope[i])
+	var b := float(speech_envelope[min(i + 1, speech_envelope.size() - 1)])
+	return clamp(lerp(a, b, pos - i), 0.0, 1.0)
