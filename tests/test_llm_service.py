@@ -103,3 +103,13 @@ def test_extraction_drops_items_not_in_the_utterance(fake_llm):
     fake_llm.replies = ['{"likes": [], "dislikes": [], "facts": ["Name is Sam", "30 years old"]}']
     assert MemoryExtractionService().extract("Hello, my name is Sam") == {
         "likes": [], "dislikes": [], "facts": ["Name is Sam"]}
+
+
+def test_replies_never_address_the_user_as_tom(fake_llm, user):
+    fake_llm.replies = ["Purr... Feeling alright, Tom?", "I am Tom!"]
+    service = LLMService(user)
+    assert generate(service, "hi") == "Purr... Feeling alright?"
+    assert generate(service, "who are you") == "I am Tom!"
+    service.history.append({"role": "assistant", "content": "Nice day, Tom."})
+    sent = service.build_messages("x", "ctx")
+    assert sent[-2]["content"] == "Nice day."

@@ -1,6 +1,7 @@
 import logging
 import subprocess
 
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
@@ -10,6 +11,28 @@ from interaction_state import InteractionPhase
 log = logging.getLogger(__name__)
 
 SYNTH_TIMEOUT_SECONDS = 30
+ENVELOPE_FPS = 20
+
+
+def speech_envelope(data, samplerate, fps=ENVELOPE_FPS):
+    """
+    Loudness per 1/fps second, scaled to 0..1, for Godot's mouth movement.
+    Quiet frames are 0 so the mouth closes in pauses.
+    """
+    audio = np.asarray(data, dtype=np.float32)
+    if audio.ndim > 1:
+        audio = audio.mean(axis=1)
+    hop = max(1, int(samplerate / fps))
+    frames = len(audio) // hop
+    if frames == 0:
+        return []
+    rms = np.sqrt((audio[: frames * hop].reshape(frames, hop) ** 2).mean(axis=1))
+    peak = np.percentile(rms, 95)
+    if peak <= 1e-6:
+        return [0.0] * frames
+    level = np.clip(rms / peak, 0.0, 1.0)
+    level[level < 0.15] = 0.0
+    return [round(float(v), 2) for v in level]
 
 
 class TTSService:
@@ -64,7 +87,7 @@ class TTSService:
         try:
             self._interaction_state.transition_to(InteractionPhase.SPEAKING)
             if self._godot:
-                self._godot.send_speak(text)
+                self._godot.send_speak(text, envelope=speech_envelope(data, samplerate), fps=ENVELOPE_FPS)
             sd.play(data, samplerate)
             sd.wait()
         except Exception:

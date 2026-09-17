@@ -39,3 +39,17 @@ def test_energy_recovers_over_time(user):
     assert tom.energy == 10
     tom.recover(now=tom.updated_at + 10 * 3600)
     assert tom.energy == 100
+
+
+def test_speech_envelope_follows_loudness(monkeypatch):
+    import numpy as np
+    for name in ("sounddevice", "soundfile"):
+        monkeypatch.setitem(sys.modules, name, types.SimpleNamespace())
+    from tts_service import speech_envelope
+    sr = 16000
+    t = np.arange(sr) / sr
+    audio = np.sin(2 * np.pi * 220 * t) * (t < 0.5)  # 0.5 s tone, then silence
+    env = speech_envelope(audio, sr, fps=20)
+    assert len(env) == 20
+    assert all(v == 1.0 for v in env[:9]) and all(v == 0.0 for v in env[11:])
+    assert speech_envelope(np.zeros(100), sr) == []

@@ -87,9 +87,9 @@ class GodotBridge:
                     pass
                 self._client = None
 
-    def send_speak(self, text, emotion="neutral"):
-        """Notify Godot that Tom is about to speak."""
-        self.send("speak", text=text, emotion=emotion)
+    def send_speak(self, text, emotion="neutral", envelope=None, fps=20):
+        """Notify Godot that Tom is about to speak; `envelope` drives the mouth."""
+        self.send("speak", text=text, emotion=emotion, envelope=envelope or [], fps=fps)
 
     def send_speak_end(self):
         """Notify Godot that Tom finished speaking."""

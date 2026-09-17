@@ -1,4 +1,5 @@
 import logging
+import re
 
 import config
 import db
@@ -74,10 +75,18 @@ _ASCII_PUNCTUATION = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '
                                     "–": "-", "—": "-", "…": "..."})
 
 
+# "..., Tom?" -> "...?" : Tom must not address the user by his own name.
+_ADDRESSED_AS_TOM = re.compile(r",\s*Tom\b(?=\s*[?!.]|\s*$)")
+
+
+def _unaddress_tom(text):
+    return _ADDRESSED_AS_TOM.sub("", text)
+
+
 def _clean(text):
     text = (text or "").translate(_ASCII_PUNCTUATION)
     text = text.encode("ascii", errors="ignore").decode().strip().strip('"').strip()
-    return text or "Meow!"
+    return _unaddress_tom(text) or "Meow!"
 
 
 class LLMService:
@@ -110,9 +119,14 @@ class LLMService:
         )
 
     def build_messages(self, text, context):
+        # Older replies may still say "..., Tom?"; the model copies such patterns.
+        history = [
+            {**m, "content": _unaddress_tom(m["content"])} if m.get("role") == "assistant" else m
+            for m in self.history
+        ]
         return (
             [{"role": "system", "content": SYSTEM_PROMPT}]
-            + self.history
+            + history
             + [{"role": "user", "content": f"{context}\n[User says]\n{text}"}]
         )
 
