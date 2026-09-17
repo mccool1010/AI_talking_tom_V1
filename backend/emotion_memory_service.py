@@ -1,34 +1,23 @@
 # emotion_memory_service.py
 
 from collections import defaultdict, Counter
-from pymongo import MongoClient
+import config
+import db
 
 class EmotionMemoryService:
 
     def __init__(self, user_context=None):
+        self.collection = db.get_db()["emotions"]
+        self.switch_user(user_context.get_user_id() if user_context else config.DEFAULT_USER_ID)
 
-        print("Loading Emotion Memory Service...")
-
-        self.user_id = user_context.get_user_id() if user_context else "default"
-
-        self.client = MongoClient("mongodb://localhost:27017/")
-        self.db = self.client["talking_tom"]
-        self.collection = self.db["emotions"]
-        doc = self.collection.find_one({
-            "conversation_id": self.user_id
-
-        })
+    def switch_user(self, user_id):
+        self.user_id = user_id
+        doc = self.collection.find_one({"conversation_id": user_id})
         if doc:
-            self.history = doc["emotion_history"]
-            print("Emotion History Loaded")
+            self.history = doc.get("emotion_history", [])
         else:
-            self.collection.insert_one({
-                "conversation_id":"default",
-                "emotion_history": []
-            })
+            self.collection.insert_one({"conversation_id": user_id, "emotion_history": []})
             self.history = []
-            print("New Emotion History Created")
-        print("Emotion Memory Service Ready")
 
     def get_mood(self, emotion):
 

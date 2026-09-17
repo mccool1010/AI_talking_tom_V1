@@ -1,53 +1,24 @@
-from pymongo import MongoClient
+import config
+import db
 
 
 class RelationshipService:
 
+    DEFAULTS = {"trust": 50, "friendship": 50, "attachment": 50}
+
     def __init__(self, user_context=None):
+        self.collection = db.get_db()["relationship"]
+        self.switch_user(user_context.get_user_id() if user_context else config.DEFAULT_USER_ID)
 
-        print("Loading Relationship Service...")
+    def switch_user(self, user_id):
+        self.user_id = user_id
+        doc = self.collection.find_one({"tom_id": user_id})
+        if not doc:
+            doc = {"tom_id": user_id, **self.DEFAULTS}
+            self.collection.insert_one(dict(doc))
+        for key, default in self.DEFAULTS.items():
+            setattr(self, key, doc.get(key, default))
 
-        self.user_id = user_context.get_user_id() if user_context else "default"
-
-        self.client = MongoClient(
-            "mongodb://localhost:27017/"
-        )
-
-        self.db = self.client["talking_tom"]
-
-        self.collection = self.db["relationship"]
-
-        doc = self.collection.find_one(
-            {
-                "tom_id": self.user_id
-            }
-        )
-
-        if doc:
-
-            self.trust = doc["trust"]
-            self.friendship = doc["friendship"]
-            self.attachment = doc["attachment"]
-
-            print("Relationship Loaded")
-
-        else:
-
-            self.collection.insert_one(
-                {
-                    "tom_id": self.user_id,
-
-                    "trust": 50,
-                    "friendship": 50,
-                    "attachment": 50
-                }
-            )
-
-            self.trust = 50
-            self.friendship = 50
-            self.attachment = 50
-
-            print("New Relationship Created")
     def update_trust(self, amount):
         self.trust += amount
         self.trust = max(

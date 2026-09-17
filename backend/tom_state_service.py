@@ -1,41 +1,24 @@
-from pymongo import MongoClient
+import config
+import db
 
 class TomStateService:
 
+    DEFAULTS = {"energy": 100, "friendliness": 50, "curiosity": 50}
+
     def __init__(self, user_context=None):
+        self.collection = db.get_db()["state"]
+        self.switch_user(user_context.get_user_id() if user_context else config.DEFAULT_USER_ID)
 
-        print("Loading Tom State Service...")
-        self.user_id = user_context.get_user_id() if user_context else "default"
-        self.client = MongoClient(
-    "mongodb://localhost:27017/"
-)
-        self.db = self.client["talking_tom"]
-        self.collection = self.db["state"]
-        doc = self.collection.find_one({
-            "tom_id" : self.user_id
+    def switch_user(self, user_id):
+        self.user_id = user_id
+        doc = self.collection.find_one({"tom_id": user_id})
+        if not doc:
+            doc = {"tom_id": user_id, **self.DEFAULTS}
+            self.collection.insert_one(dict(doc))
+        self.energy = doc["energy"]
+        self.friendliness = doc["friendliness"]
+        self.curiosity = doc["curiosity"]
 
-        })
-        if doc :
-            self.energy = doc["energy"]
-            self.friendliness = doc["friendliness"]
-            self.curiosity = doc["curiosity"]
-            print("Tom State Loaded")
-        else:
-            self.collection.insert_one(
-        {
-            "tom_id": self.user_id,
-
-            "energy": 100,
-
-            "friendliness": 50,
-
-            "curiosity": 50
-        }
-    )
-            self.energy = 100
-            self.friendliness = 50
-            self.curiosity = 50
-            print("New Tom State Created")
     def update_energy(self, amount):
         self.energy += amount
         self.energy = max(0, min(100, self.energy))

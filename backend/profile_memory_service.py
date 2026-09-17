@@ -1,361 +1,183 @@
-from pymongo import MongoClient
+import logging
+import re
 from datetime import datetime
+from difflib import SequenceMatcher
+
+import config
+import db
+
+log = logging.getLogger(__name__)
+
+CATEGORIES = ("likes", "dislikes", "facts")
+DEFAULT_IMPORTANCE = 5
+DUPLICATE_SIMILARITY = 0.88
+
+# Words that carry no topic on their own. Matching on them made almost every
+# utterance retrieve unrelated memories ("a", "i", "is", "time", ...).
+STOPWORDS = frozenset("""
+a about above after again against all am an and any are as at be because been before being
+below between both but by can could did do does doing don down during each even ever every
+few for from further get gets getting go goes going gone good got had has have having he her
+here hers herself him himself his how i if in into is it its itself just know let like liked
+likes love loved loves me more most much my myself need no nor not now of off on once only or
+other our ours ourselves out over own really same say she should so some such than that the
+their theirs them themselves then there these they this those through time to today tomorrow
+too under until up us very want wants was way we well were what when where which while who
+whom why will with would yeah yes yesterday you your yours yourself yourselves tom hey hi hello
+okay ok im ive dont cant thats whats remember think thought feel maybe guess tell please
+thing things something anything
+""".split())
+
+_WORD = re.compile(r"[a-z0-9]+")
+
+
+def _stem(word):
+    for suffix in ("ing", "ed", "es", "s"):
+        if len(word) > len(suffix) + 2 and word.endswith(suffix):
+            return word[: -len(suffix)]
+    return word
+
+
+def keywords(text):
+    """Content-word stems of `text` (lowercase, stopwords removed)."""
+    return {_stem(w) for w in _WORD.findall(text.lower().replace("'", "")) if w not in STOPWORDS}
+
+
+def normalize(text):
+    return " ".join(_WORD.findall(text.lower()))
+
+
+def is_duplicate(a, b):
+    na, nb = normalize(a), normalize(b)
+    return na == nb or SequenceMatcher(None, na, nb).ratio() >= DUPLICATE_SIMILARITY
+
+
+def _now():
+    return datetime.now().isoformat()
+
 
 class ProfileMemoryService:
-
     def __init__(self, user_context=None):
+        self.collection = db.get_db()["profile_memory"]
+        self.user_id = user_context.get_user_id() if user_context else config.DEFAULT_USER_ID
+        self.switch_user(self.user_id)
 
-        print("Loading Profile Memory Service...")
+    def switch_user(self, user_id):
+        self.user_id = user_id
+        if not self.collection.find_one({"owner": user_id}):
+            self.collection.insert_one({"owner": user_id, "likes": [], "dislikes": [], "facts": []})
+            log.info("Created memory profile for %s", user_id)
 
-        self.user_id = user_context.get_user_id() if user_context else "Hari"
+    # ---- writes ----
 
-        self.client = MongoClient(
-            "mongodb://localhost:27017/"
-        )
-
-        self.db = self.client["talking_tom"]
-
-        self.collection = self.db["profile_memory"]
-
-        doc = self.collection.find_one(
-            {
-                "owner": self.user_id
-            }
-        )
-
-        if not doc:
-
-            self.collection.insert_one(
-                {
-                    "owner": self.user_id,
-
-                    "likes": [],
-
-                    "dislikes": [],
-
-                    "facts": []
-                }
-            )
-
-            print("New Profile Created")
-
-        else:
-
-            print("Profile Loaded")
-    def add_like(self, item):
+    def _add(self, category, value, importance=DEFAULT_IMPORTANCE):
+        value = (value or "").strip()
+        if not value:
+            return
         profile = self.get_profile()
-
-        for like in profile["likes"]:
-            if like["value"].lower() == item.lower():
+        for existing in profile.get(category, []):
+            if is_duplicate(existing["value"], value):
                 self.collection.update_one(
-            {
-                "owner": self.user_id,
-                "likes.value": like["value"]
-            },
-            {
-                "$inc":
-                {
-                    "likes.$.importance": 1
-                },
-                "$set":
-                {
-                    "likes.$.last_accessed":
-                    datetime.now().isoformat()
-                }
-            }
-        )
-
-        print(
-            "Like Importance Increased:",
-            item
-        )
-
-        return
-
-        self.collection.update_one(
-        {
-            "owner": self.user_id
-        },
-        {
-            "$push":
-            {
-                "likes":
-                {
-                    "value": item,
-                    "learned_at": datetime.now().isoformat(),
-                    "last_accessed": datetime.now().isoformat(),
-                    "importance": 5
-                }
-            }
-        }
-    )
-        print("Saved Like:", item)
-    def add_fact(self, fact,importance=5):
-        profile = self.get_profile()
-
-        for existing_fact in profile["facts"]:
-            if existing_fact["value"].lower() == fact.lower():
-                self.collection.update_one(
-            {
-                "owner": self.user_id,
-                "facts.value": existing_fact["value"]
-            },
-            {
-                "$inc":
-                {
-                    "facts.$.importance": 1
-                },
-                  "$set": {
-                      "facts.$.last_accessed": datetime.now().isoformat()
-                      }
-            }
-        )
-                print(
-            "Fact Importance Increased:",
-            fact
-        )
+                    {"owner": self.user_id, f"{category}.value": existing["value"]},
+                    {"$inc": {f"{category}.$.importance": 1},
+                     "$set": {f"{category}.$.last_accessed": _now()}},
+                )
+                log.info("Reinforced %s: %s", category, existing["value"])
                 return
-
+        now = _now()
         self.collection.update_one(
-        {
-            "owner": self.user_id
-        },
-        {
-            "$push":
-            {
-                "facts":
-                {
-                    "value": fact,
-                    "learned_at": datetime.now().isoformat(),
-                    "last_accessed": datetime.now().isoformat(),
-                    "importance": importance
-                }
-            }
-        }
-    )
-        print("Saved Fact:", fact)
-    def get_profile(self):
-        return self.collection.find_one(
-        {
-            "owner": self.user_id
-        }
-    )
-    def get_likes(self):
-        profile = self.get_profile()
-        return [
-        like["value"]
-        for like in profile["likes"]
-    ]
+            {"owner": self.user_id},
+            {"$push": {category: {"value": value, "learned_at": now,
+                                  "last_accessed": now, "importance": importance}}},
+        )
+        log.info("Saved %s: %s", category, value)
 
+    def add_like(self, item):
+        self._add("likes", item)
+
+    def add_dislike(self, item):
+        self._add("dislikes", item)
+
+    def add_fact(self, fact, importance=DEFAULT_IMPORTANCE):
+        self._add("facts", fact, importance)
+
+    def _touch(self, category, value):
+        self.collection.update_one(
+            {"owner": self.user_id, f"{category}.value": value},
+            {"$set": {f"{category}.$.last_accessed": _now()}},
+        )
+
+    def touch_like(self, value):
+        self._touch("likes", value)
+
+    def touch_dislike(self, value):
+        self._touch("dislikes", value)
+
+    def touch_fact(self, value):
+        self._touch("facts", value)
+
+    # ---- reads ----
+
+    def get_profile(self):
+        doc = self.collection.find_one({"owner": self.user_id}) or {}
+        return {"owner": self.user_id, **{c: doc.get(c, []) for c in CATEGORIES}}
+
+    def _values(self, category):
+        return [m["value"] for m in self.get_profile()[category]]
+
+    def get_likes(self):
+        return self._values("likes")
 
     def get_dislikes(self):
-        profile = self.get_profile()
-        return [
-        dislike["value"]
-        for dislike in profile["dislikes"]
-    ]
-
+        return self._values("dislikes")
 
     def get_facts(self):
-        profile = self.get_profile()
-        return [
-        fact["value"]
-        for fact in profile["facts"]
-    ]
-    def add_dislike(self, item):
-        profile = self.get_profile()
-        for dislike in profile["dislikes"]:
-            if dislike["value"].lower() == item.lower():
-                self.collection.update_one(
-            {
-                "owner": self.user_id,
-                "dislikes.value": dislike["value"]
-            },
-            {
-                "$inc":
-                {
-                    "dislikes.$.importance": 1
-                },
-                "$set":
-                {
-                    "dislikes.$.last_accessed":
-                    datetime.now().isoformat()
-                }
-            }
-        )
+        return self._values("facts")
 
-        print(
-            "Dislike Importance Increased:",
-            item
-        )
+    def _recent(self, category, limit):
+        return sorted(self.get_profile()[category], key=lambda x: x["learned_at"], reverse=True)[:limit]
 
-        return
-
-        self.collection.update_one(
-        {
-            "owner": self.user_id
-        },
-        {
-            "$push":
-            {
-                "dislikes":
-                {
-                    "value": item,
-                    "learned_at": datetime.now().isoformat(),
-                    "last_accessed": datetime.now().isoformat(),
-                    "importance": 5
-                }
-            }
-        }
-    )
-        print("Saved Dislike:", item)
     def get_recent_likes(self, limit=5):
-            profile = self.get_profile()
-            likes = sorted(
-        profile["likes"],
-        key=lambda x: x["learned_at"],
-        reverse=True
-    )
-            return likes[:limit]
-    def get_recent_facts(self, limit=5):
-            profile = self.get_profile()
-            facts = sorted(
-        profile["facts"],
-        key=lambda x: x["learned_at"],
-        reverse=True
-    )
-            return facts[:limit]
+        return self._recent("likes", limit)
+
     def get_recent_dislikes(self, limit=5):
-        profile = self.get_profile()
-        dislikes = sorted(
-        profile["dislikes"],
-        key=lambda x: x["learned_at"],
-        reverse=True
-    )
-        return dislikes[:limit]
+        return self._recent("dislikes", limit)
+
+    def get_recent_facts(self, limit=5):
+        return self._recent("facts", limit)
+
     def get_important_facts(self):
-        profile = self.get_profile()
+        return [f["value"] for f in self.get_profile()["facts"] if f["importance"] >= 7]
 
-        result = []
-        for fact in profile["facts"]:
-            if fact["importance"] >= 7:
-                result.append(
-                fact["value"]
-            )
+    def _scored(self, text):
+        query = keywords(text)
+        if not query:
+            return []
+        scored = []
+        for category in CATEGORIES:
+            for memory in self.get_profile()[category]:
+                overlap = len(query & keywords(memory["value"]))
+                if overlap:
+                    scored.append((overlap, memory["importance"], category, memory))
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        return scored
 
-        return result
     def search_memories(self, query):
-        query = query.lower()
+        return [m["value"] for _, _, _, m in self._scored(query)]
 
+    def retrieve(self, text, limit=3):
+        """
+        Memories relevant to an utterance, best first: ranked by how many
+        content words they share with it, then by importance. Only the
+        returned memories are marked as accessed (this slows their decay).
+        """
         results = []
-
-        profile = self.get_profile()
-
-        for like in profile["likes"]:
-            if query in like["value"].lower():
-                results.append(
-                like["value"]
-            )
-        for dislike in profile["dislikes"]:
-            if query in dislike["value"].lower():
-                results.append(
-                dislike["value"]
-            )
-
-        for fact in profile["facts"]:
-            if query in fact["value"].lower():
-                results.append(
-                fact["value"]
-            )
-
+        for _, _, category, memory in self._scored(text)[:limit]:
+            self._touch(category, memory["value"])
+            results.append({"value": memory["value"], "importance": memory["importance"],
+                            "category": category})
         return results
+
     def get_top_memories(self, query, limit=3):
-        query = query.lower()
-
-        results = []
-
-        profile = self.get_profile()
-        for like in profile["likes"]:
-            if query in like["value"].lower():
-                self.touch_like(
-            like["value"]
-        )
-                results.append(
-                {
-                    "value": like["value"],
-                    "importance": like["importance"]
-                }
-            )
-
-        for dislike in profile["dislikes"]:
-            if query in dislike["value"].lower():
-                self.touch_dislike(
-            dislike["value"]
-        )
-
-                results.append(
-                {
-                    "value": dislike["value"],
-                    "importance": dislike["importance"]
-                }
-            )
-
-        for fact in profile["facts"]:
-            if query in fact["value"].lower():
-                self.touch_fact(
-            fact["value"]
-        )
-
-                results.append(
-        {
-            "value": fact["value"],
-            "importance": fact["importance"]
-        }
-    )
-        results.sort(
-        key=lambda x: x["importance"],
-        reverse=True
-    )
-        return results[:limit]
-    def touch_fact(self, memory_value):
-        self.collection.update_one(
-        {
-            "owner": self.user_id,
-            "facts.value": memory_value
-        },
-        {
-            "$set":
-            {
-                "facts.$.last_accessed":
-                datetime.now().isoformat()
-            }
-        }
-    )
-    def touch_like(self, memory_value):
-        self.collection.update_one(
-        {
-            "owner": self.user_id,
-            "likes.value": memory_value
-        },
-        {
-            "$set":
-            {
-                "likes.$.last_accessed":
-                datetime.now().isoformat()
-            }
-        }
-    )
-    def touch_dislike(self, memory_value):
-        self.collection.update_one(
-        {
-            "owner": self.user_id,
-            "dislikes.value": memory_value
-        },
-        {
-            "$set":
-            {
-                "dislikes.$.last_accessed":
-                datetime.now().isoformat()
-            }
-        }
-    )
+        """Backward-compatible alias for retrieve()."""
+        return self.retrieve(query, limit)
