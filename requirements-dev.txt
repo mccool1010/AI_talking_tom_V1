@@ -1,0 +1,10 @@
+-r requirements.txt
+pytest==9.1.1
+mongomock==4.3.0
+httpx==0.28.1
+
+# Only used by the manual backend/test_*.py scripts
+vosk==0.3.45
+playsound==1.2.2
+speechbrain==1.1.1
+requests==2.34.2
