@@ -1,21 +1,59 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
-const API = 'http://localhost:8000'
+// Same origin when served by the backend; the backend port when running `npm run dev`.
+const API = import.meta.env.VITE_API_URL ?? (window.location.port === '5173' ? 'http://localhost:8000' : '')
+const WS_BASE = (API || window.location.origin).replace(/^http/, 'ws')
+
+const TOKEN_KEY = 'tom_session'
+function getToken() {
+  try { return sessionStorage.getItem(TOKEN_KEY) } catch { return null }
+}
+function setToken(token) {
+  try {
+    if (token) sessionStorage.setItem(TOKEN_KEY, token)
+    else sessionStorage.removeItem(TOKEN_KEY)
+  } catch { /* storage unavailable: session lasts until reload */ }
+}
+
+class AuthError extends Error {}
+
+async function apiFetch(path, options = {}) {
+  const token = getToken()
+  const res = await fetch(API + path, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+  if (res.status === 401 || res.status === 409) throw new AuthError()
+  return res
+}
 
 // ---- WebSocket Hook ----
-function useWebSocket(url) {
+function useWebSocket(url, onAuthLost) {
   const [data, setData] = useState(null)
   const ws = useRef(null)
 
   useEffect(() => {
-    ws.current = new WebSocket(url)
-    ws.current.onmessage = (e) => setData(JSON.parse(e.data))
-    ws.current.onclose = () => setTimeout(() => {
+    let stopped = false
+    let timer = null
+    const connect = () => {
       ws.current = new WebSocket(url)
       ws.current.onmessage = (e) => setData(JSON.parse(e.data))
-    }, 2000)
-    return () => ws.current?.close()
-  }, [url])
+      ws.current.onclose = (e) => {
+        if (stopped) return
+        if (e.code === 4401) { onAuthLost(); return }
+        timer = setTimeout(connect, 2000)
+      }
+    }
+    connect()
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+      ws.current?.close()
+    }
+  }, [url, onAuthLost])
 
   return data
 }
@@ -33,6 +71,12 @@ function Bar({ label, value, max = 100, color = 'bar-blue' }) {
       </div>
     </div>
   )
+}
+
+function errorText(data) {
+  if (typeof data?.detail === 'string') return data.detail
+  if (Array.isArray(data?.detail)) return data.detail.map(d => d.msg).join('; ')
+  return data?.error || 'Request failed'
 }
 
 // ---- Login Page ----
@@ -58,7 +102,7 @@ function LoginPage({ onLogin }) {
         body: JSON.stringify(body)
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error); return }
+      if (!res.ok) { setError(errorText(data)); return }
 
       if (tab === 'signup') {
         // Auto-login after signup
@@ -68,9 +112,10 @@ function LoginPage({ onLogin }) {
           body: JSON.stringify({ user_id: userId, password })
         })
         const loginData = await loginRes.json()
-        if (loginRes.ok) onLogin(loginData)
-        else setError(loginData.error)
+        if (loginRes.ok) { setToken(loginData.token); onLogin(loginData) }
+        else setError(errorText(loginData))
       } else {
+        setToken(data.token)
         onLogin(data)
       }
     } catch { setError('Cannot reach server') }
@@ -98,7 +143,8 @@ function LoginPage({ onLogin }) {
           )}
           <div className="form-group">
             <label>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              minLength={tab === 'signup' ? 8 : undefined} required={tab === 'signup'} />
           </div>
           <button className="btn-primary" type="submit">
             {tab === 'login' ? 'Login' : 'Create Account'}
@@ -112,7 +158,8 @@ function LoginPage({ onLogin }) {
 
 // ---- Dashboard Page ----
 function Dashboard({ user, onLogout }) {
-  const live = useWebSocket('ws://localhost:8000/ws/state')
+  const token = getToken()
+  const live = useWebSocket(`${WS_BASE}/ws/state?token=${encodeURIComponent(token || '')}`, onLogout)
   const [memories, setMemories] = useState({ likes: [], dislikes: [], facts: [] })
   const [conversations, setConversations] = useState([])
   const [personality, setPersonality] = useState(null)
@@ -122,9 +169,9 @@ function Dashboard({ user, onLogout }) {
     const load = async () => {
       try {
         const [memRes, convRes, stateRes] = await Promise.all([
-          fetch(API + '/api/memories'),
-          fetch(API + '/api/conversations'),
-          fetch(API + '/api/state')
+          apiFetch('/api/memories'),
+          apiFetch('/api/conversations'),
+          apiFetch('/api/state')
         ])
         setMemories(await memRes.json())
         const convData = await convRes.json()
@@ -132,15 +179,17 @@ function Dashboard({ user, onLogout }) {
         const stateData = await stateRes.json()
         setPersonality(stateData.personality)
         setEmotions(stateData.recent_emotions || [])
-      } catch {}
+      } catch (err) {
+        if (err instanceof AuthError) onLogout()
+      }
     }
     load()
     const interval = setInterval(load, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [onLogout])
 
   const handleLogout = async () => {
-    await fetch(API + '/api/auth/logout', { method: 'POST' })
+    try { await apiFetch('/api/auth/logout', { method: 'POST' }) } catch { /* already logged out */ }
     onLogout()
   }
 
@@ -215,7 +264,7 @@ function Dashboard({ user, onLogout }) {
         <div className="card">
           <div className="card-title"><span className="icon">📷</span> Camera Feed</div>
           <div className="camera-feed">
-            <img src={API + '/api/camera'} alt="Live camera" />
+            <img src={`${API}/api/camera?token=${encodeURIComponent(token || '')}`} alt="Live camera" />
           </div>
         </div>
 
@@ -264,13 +313,19 @@ export default function App() {
   const [user, setUser] = useState(null)
 
   // Check if already logged in on mount
+  const handleLogout = useCallback(() => {
+    setToken(null)
+    setUser(null)
+  }, [])
+
   useEffect(() => {
-    fetch(API + '/api/auth/status')
+    if (!getToken()) return
+    apiFetch('/api/auth/status')
       .then(r => r.json())
-      .then(d => { if (d.logged_in) setUser(d) })
-      .catch(() => {})
+      .then(d => { if (d.logged_in) setUser(d); else setToken(null) })
+      .catch(() => setToken(null))
   }, [])
 
   if (!user) return <LoginPage onLogin={setUser} />
-  return <Dashboard user={user} onLogout={() => setUser(null)} />
+  return <Dashboard user={user} onLogout={handleLogout} />
 }
