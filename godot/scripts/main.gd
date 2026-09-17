@@ -40,6 +40,9 @@ var speech_envelope: Array = []
 var envelope_fps: float = 20.0
 var speech_time: float = 0.0
 var mouth_openness: float = 0.0
+var loudness_average: float = 0.0
+## Audio reaches the speakers a little after the speak event arrives.
+const AUDIO_LATENCY: float = 0.08
 
 
 func _ready() -> void:
@@ -55,6 +58,8 @@ func _ready() -> void:
 		# Start the breathing idle loop
 		if anim_player:
 			_play_idle()
+			if jaw_modifier:
+				jaw_modifier.set_talk_animation(_talk_animation_for("neutral"))
 
 		# --- Camera: portrait framing ---
 		var aabb := _get_combined_aabb(tom_model)
@@ -530,6 +535,9 @@ func _on_speak(text: String, emotion: String, envelope: Array = [], fps: float =
 	speech_envelope = envelope
 	envelope_fps = max(fps, 1.0)
 	current_emotion = emotion
+	if jaw_modifier:
+		jaw_modifier.set_talk_animation(_talk_animation_for(emotion))
+		jaw_modifier.restart()
 	print("[Tom] Speaking: ", text.substr(0, 40), "...")
 	_play_talk()
 
@@ -610,26 +618,49 @@ func _process(delta: float) -> void:
 # Mouth movement for speech
 # ---------------------------------------------------------------
 
+func _talk_animation_for(emotion: String) -> Animation:
+	if anim_player == null:
+		return null
+	var anim_name := "talkAD"
+	match emotion:
+		"happy", "surprise":
+			anim_name = "talkAH"
+		"sad", "fear":
+			anim_name = "talkAS"
+	if not anim_player.has_animation(anim_name):
+		anim_name = "talkAD"
+	return anim_player.get_animation(anim_name) if anim_player.has_animation(anim_name) else null
+
+
 func _animate_jaw(delta: float) -> void:
 	if jaw_modifier == null:
 		return
 	var target := 0.0
 	if is_speaking:
 		speech_time += delta
-		target = _speech_openness(speech_time)
-	# Open quickly, close a little slower, like a real mouth.
-	var rate := 25.0 if target > mouth_openness else 14.0
+		target = _speech_openness(speech_time - AUDIO_LATENCY)
+	# Open fast, close a bit slower, like a real mouth.
+	var rate := 18.0 if target > mouth_openness else 9.0
 	mouth_openness = lerp(mouth_openness, target, clamp(delta * rate, 0.0, 1.0))
+	# Emphasis = how far the voice is above its recent average (stressed syllables).
+	loudness_average = lerp(loudness_average, mouth_openness, clamp(delta * 2.0, 0.0, 1.0))
 	jaw_modifier.openness = mouth_openness
+	jaw_modifier.emphasis = clamp((mouth_openness - loudness_average) * 3.0, 0.0, 1.0) if is_speaking else 0.0
 
 
 func _speech_openness(t: float) -> float:
+	if t < 0.0:
+		return 0.0
 	if speech_envelope.is_empty():
 		# No envelope from the backend: generic talking rhythm.
-		var syllables := 0.5 + 0.5 * sin(t * 14.0)
-		var phrases := 0.6 + 0.4 * sin(t * 2.3)
+		var syllables := 0.5 + 0.5 * sin(t * 13.0)
+		var phrases := 0.55 + 0.45 * sin(t * 2.1 + 0.7)
 		return clamp(syllables * phrases, 0.0, 1.0)
-	var i := int(t * envelope_fps)
+	# Linear interpolation between envelope frames avoids stepped movement.
+	var pos := t * envelope_fps
+	var i := int(pos)
 	if i >= speech_envelope.size():
 		return 0.0
-	return clamp(float(speech_envelope[i]), 0.0, 1.0)
+	var a := float(speech_envelope[i])
+	var b := float(speech_envelope[min(i + 1, speech_envelope.size() - 1)])
+	return clamp(lerp(a, b, pos - i), 0.0, 1.0)

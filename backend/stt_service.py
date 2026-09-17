@@ -18,6 +18,22 @@ PRE_ROLL_SECONDS = 0.3        # audio kept from before speech was detected
 MAX_UTTERANCE_SECONDS = 30
 VAD_START_PROB = 0.5
 VAD_CONTINUE_PROB = 0.35
+MIN_SPEECH_SECONDS = 0.3      # less speech than this is noise, not a turn
+ECHO_GUARD_SECONDS = 0.5      # ignore the mic right after Tom stops talking
+# Whisper tends to invent these for short noises.
+HALLUCINATIONS = {"so", "you", "thank you", "thanks", "thank you very much", "bye", "okay",
+                  "thanks for watching", "thank you for watching", "hmm", "uh", "um"}
+
+
+def clean_transcript(segments, speech_seconds):
+    """Join Whisper segments, dropping ones that are probably not speech."""
+    kept = [s.text for s in segments
+            if not (s.no_speech_prob > 0.6 and s.avg_logprob < -0.7)]
+    text = "".join(kept).strip()
+    normalized = "".join(ch for ch in text.lower() if ch.isalnum() or ch == " ").strip()
+    if normalized in HALLUCINATIONS and speech_seconds < 1.0:
+        return ""
+    return text
 
 
 class STTLifecycle(Enum):
@@ -60,7 +76,8 @@ class SpeechDetector:
         if self.model is None:
             return 1.0 if np.abs(chunk).mean() > self.energy_threshold else 0.0
         audio = self._torch.from_numpy(chunk.reshape(-1).astype(np.float32) / 32768.0)
-        return float(self.model(audio, config.STT_SAMPLE_RATE))
+        with self._torch.inference_mode():
+            return float(self.model(audio, config.STT_SAMPLE_RATE))
 
     def reset(self):
         if self.model is not None:
@@ -115,6 +132,7 @@ class STTService:
         self.latest_audio = None
         self._data_lock = threading.Lock()
 
+        self._resumed_at = 0.0       # when STT last resumed after Tom spoke
         self._listening = False      # mic stream open
         self._recording = False      # speech detected
         self._transcribing = False   # Whisper running
@@ -155,6 +173,7 @@ class STTService:
         with self._lifecycle_lock:
             if self._lifecycle_state == STTLifecycle.PAUSED:
                 self._lifecycle_state = STTLifecycle.RUNNING
+                self._resumed_at = time.monotonic()
                 self._condition.notify_all()
 
     # ---- accessors ----
@@ -184,6 +203,12 @@ class STTService:
     def _stopped(self):
         with self._lifecycle_lock:
             return self._lifecycle_state == STTLifecycle.STOPPED
+
+    def _tom_is_talking(self):
+        """True while Tom is (about to be) speaking, so the mic must not record."""
+        with self._lifecycle_lock:
+            paused = self._lifecycle_state == STTLifecycle.PAUSED
+        return paused or not self._interaction_state.can_listen()
 
     def _listen_loop(self):
         while True:
@@ -220,7 +245,7 @@ class STTService:
         """Capture one utterance and transcribe it. Returns (text, audio) or (None, None)."""
         self._listening = True
         self.detector.reset()
-        state = {"recording": False, "silent_chunks": 0, "chunks": 0}
+        state = {"recording": False, "silent_chunks": 0, "chunks": 0, "speech_chunks": 0}
         pre_roll = deque(maxlen=max(1, int(PRE_ROLL_SECONDS * self.sample_rate / CHUNK_SIZE)))
         audio_chunks = []
         silence_limit = int(self.silence_duration * self.sample_rate / CHUNK_SIZE)
@@ -230,11 +255,14 @@ class STTService:
         def callback(indata, frames, time_info, status):
             if status:
                 log.debug("Audio status: %s", status)
+            if time.monotonic() - self._resumed_at < ECHO_GUARD_SECONDS:
+                return  # tail of Tom's own voice / room echo
             chunk = indata.copy()
             prob = self.detector.speech_prob(chunk)
             if not state["recording"]:
                 if prob >= VAD_START_PROB:
                     state["recording"] = True
+                    state["speech_chunks"] = 1
                     self._recording = True
                     audio_chunks.extend(pre_roll)
                     audio_chunks.append(chunk)
@@ -243,6 +271,8 @@ class STTService:
                 return
             audio_chunks.append(chunk)
             state["chunks"] += 1
+            if prob >= VAD_START_PROB:
+                state["speech_chunks"] += 1
             state["silent_chunks"] = 0 if prob >= VAD_CONTINUE_PROB else state["silent_chunks"] + 1
             if state["silent_chunks"] > silence_limit or state["chunks"] > max_chunks:
                 done.set()
@@ -253,10 +283,20 @@ class STTService:
                 while not done.wait(0.05):
                     if self._stopped() or self.environment.user_left:
                         return None, None
+                    if self._tom_is_talking():
+                        # Tom started speaking: whatever the mic hears now is
+                        # (or will be mixed with) his own voice.
+                        if state["recording"]:
+                            log.info("Discarded recording: Tom started speaking")
+                        return None, None
         finally:
             self._listening = False
-            if not done.is_set():
-                self._recording = False
+            self._recording = False
+
+        speech_seconds = state["speech_chunks"] * CHUNK_SIZE / self.sample_rate
+        if speech_seconds < MIN_SPEECH_SECONDS:
+            log.debug("Ignored %.2f s of speech-like noise", speech_seconds)
+            return None, None
 
         audio = np.concatenate(audio_chunks)
         write(self.recording_path, self.sample_rate, audio)
@@ -264,10 +304,15 @@ class STTService:
         self._transcribing = True
         try:
             segments, _ = self.model.transcribe(
-                audio.reshape(-1).astype(np.float32) / 32768.0, language="en")
-            text = "".join(s.text for s in segments).strip()
-            log.info("Heard: %s", text)
-            return text, audio
+                audio.reshape(-1).astype(np.float32) / 32768.0,
+                language="en",
+                condition_on_previous_text=False,
+            )
+            text = clean_transcript(list(segments), speech_seconds)
+            if text:
+                log.info("Heard: %s", text)
+            else:
+                log.debug("Transcript discarded as noise")
+            return (text or None), audio
         finally:
-            self._recording = False
             self._transcribing = False

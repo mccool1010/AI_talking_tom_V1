@@ -83,6 +83,30 @@ def _unaddress_tom(text):
     return _ADDRESSED_AS_TOM.sub("", text)
 
 
+_CATCHPHRASE = re.compile(r"^\s*(meow|purr+|paw-?some)\s*[.!?,]*\s*", re.IGNORECASE)
+
+
+def _normalize(text):
+    return re.sub(r"[^a-z0-9 ]", "", text.lower()).strip()
+
+
+def vary(reply, previous, user_name=None):
+    """
+    Keep a small model from falling into a rut: no catchphrase opener or use
+    of the user's name twice in a row.
+    """
+    if previous and _CATCHPHRASE.match(previous) and _CATCHPHRASE.match(reply):
+        stripped = _CATCHPHRASE.sub("", reply, count=1)
+        reply = stripped[:1].upper() + stripped[1:] if stripped else reply
+    if user_name and previous and user_name.lower() in previous.lower():
+        name = re.escape(user_name)
+        without = re.sub(rf"(,\s*{name}\b)|(\b{name}\s*[,!]\s*)", "", reply, flags=re.IGNORECASE)
+        without = re.sub(r"\s+([?!.,])", r"", without).strip()
+        if without:
+            reply = without[:1].upper() + without[1:]
+    return reply
+
+
 def _clean(text):
     text = (text or "").translate(_ASCII_PUNCTUATION)
     text = text.encode("ascii", errors="ignore").decode().strip().strip('"').strip()
@@ -139,13 +163,21 @@ class LLMService:
             likes, dislikes, relationship_context, retrieved_memories,
             internal_thoughts, objects, personality, user_name,
         )
-        response = llm_provider.chat(
-            messages=self.build_messages(text, context),
-            max_tokens=config.LLM_MAX_REPLY_TOKENS,
-            temperature=0.7,
-        )
-        reply = _clean(response["choices"][0]["message"]["content"])
-        log.debug("LLM usage: %s", response.get("usage"))
+        messages = self.build_messages(text, context)
+        recent = [m["content"] for m in self.history if m.get("role") == "assistant"][-3:]
+        reply = ""
+        for temperature in (0.7, 1.0):
+            response = llm_provider.chat(
+                messages=messages,
+                max_tokens=config.LLM_MAX_REPLY_TOKENS,
+                temperature=temperature,
+            )
+            reply = _clean(response["choices"][0]["message"]["content"])
+            log.debug("LLM usage: %s", response.get("usage"))
+            if _normalize(reply) not in {_normalize(r) for r in recent}:
+                break
+            log.info("Reply repeated an earlier one; regenerating")
+        reply = vary(reply, recent[-1] if recent else None, user_name)
 
         # History stores the raw words only, never the per-turn context block.
         self.history.append({"role": "user", "content": text})

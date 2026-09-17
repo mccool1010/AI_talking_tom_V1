@@ -17,6 +17,7 @@ def generate(service, text, **overrides):
 
 
 def test_system_prompt_is_identical_every_turn(fake_llm, user):
+    fake_llm.replies = ["Hello!", "Nice to see you again."]
     service = LLMService(user)
     generate(service, "hi", energy=10)
     generate(service, "hello again", energy=90, likes=["tea"], objects=[])
@@ -113,3 +114,19 @@ def test_replies_never_address_the_user_as_tom(fake_llm, user):
     service.history.append({"role": "assistant", "content": "Nice day, Tom."})
     sent = service.build_messages("x", "ctx")
     assert sent[-2]["content"] == "Nice day."
+
+
+def test_repeated_reply_is_regenerated(fake_llm, user):
+    fake_llm.replies = ["So, cranky today?", "So, cranky today?", "Want a nap instead?"]
+    service = LLMService(user)
+    generate(service, "so")
+    assert generate(service, "so") == "Want a nap instead?"
+    assert [c["temperature"] for c in fake_llm.calls] == [0.7, 0.7, 1.0]
+
+
+def test_no_catchphrase_or_name_twice_in_a_row(fake_llm, user):
+    fake_llm.replies = ["Purr... So, Hari! Cranky?", "Purr... I'm fine, Hari. Better now?", "Purr... Nap time?"]
+    service = LLMService(user)
+    assert generate(service, "a", user_name="Hari") == "Purr... So, Hari! Cranky?"
+    assert generate(service, "b", user_name="Hari") == "I'm fine. Better now?"
+    assert generate(service, "c", user_name="Hari") == "Purr... Nap time?"

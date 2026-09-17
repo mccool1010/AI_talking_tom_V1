@@ -135,7 +135,7 @@ environment variables or a `tom.env` file in the repo root. Copy
 |---|---|---|
 | `TOM_LLM_GPU_LAYERS` | `-1` | Layers offloaded to the GPU (needs a CUDA build of llama-cpp-python) |
 | `TOM_WHISPER_DEVICE` | `auto` | `auto` tries CUDA, then falls back to CPU |
-| `TOM_STT_SILENCE_SECONDS` | `1.0` | Silence that ends your turn |
+| `TOM_STT_SILENCE_SECONDS` | `1.2` | Silence that ends your turn |
 | `TOM_MONGO_URI` | `mongodb://localhost:27017/` | MongoDB connection |
 | `TOM_API_HOST` | `127.0.0.1` | Dashboard API bind address |
 

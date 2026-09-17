@@ -231,7 +231,7 @@ class TomApp:
             user_name=self.user_context.get_user_name(),
         )
 
-        self.tts.speak(response)
+        self.tts.speak(response, emotion=mood)
 
         # ---- after the reply has been spoken ----
         try:

@@ -51,5 +51,24 @@ def test_speech_envelope_follows_loudness(monkeypatch):
     audio = np.sin(2 * np.pi * 220 * t) * (t < 0.5)  # 0.5 s tone, then silence
     env = speech_envelope(audio, sr, fps=20)
     assert len(env) == 20
-    assert all(v == 1.0 for v in env[:9]) and all(v == 0.0 for v in env[11:])
+    assert min(env[2:9]) > 0.8                    # mouth open while the tone plays
+    assert all(v == 0.0 for v in env[16:])        # and closed again in the silence
+    assert all(b <= a for a, b in zip(env[10:], env[11:]))  # closes smoothly
     assert speech_envelope(np.zeros(100), sr) == []
+
+
+def _stt_module(monkeypatch):
+    for name in ("sounddevice", "faster_whisper", "scipy", "scipy.io", "scipy.io.wavfile"):
+        monkeypatch.setitem(sys.modules, name, types.SimpleNamespace(WhisperModel=None, write=None))
+    import stt_service
+    return stt_service
+
+
+def test_transcript_filter_drops_noise_and_hallucinations(monkeypatch):
+    stt = _stt_module(monkeypatch)
+    seg = lambda text, nsp=0.1, lp=-0.3: types.SimpleNamespace(text=text, no_speech_prob=nsp, avg_logprob=lp)
+    assert stt.clean_transcript([seg(" So")], speech_seconds=0.4) == ""
+    assert stt.clean_transcript([seg(" Thank you.")], speech_seconds=0.6) == ""
+    assert stt.clean_transcript([seg(" Thank you.")], speech_seconds=1.5) == "Thank you."
+    assert stt.clean_transcript([seg(" I'm fine,"), seg(" really.")], speech_seconds=2.0) == "I'm fine, really."
+    assert stt.clean_transcript([seg(" Hello"), seg(" music", nsp=0.9, lp=-1.2)], 1.2) == "Hello"
